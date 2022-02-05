@@ -1,12 +1,13 @@
 """Implicit round functions of Speck (without encodings)."""
+import functools
 from collections import namedtuple
 from functools import partial
 
 import sage.all
 
 from boolcrypt.utilities import (
-    substitute_variables, BooleanPolynomialRing,
-    int2vector, compose_affine, matrix2anf, compose_anf_fast
+    substitute_variables, BooleanPolynomialRing, vector2int,
+    int2vector, compose_affine, matrix2anf, compose_anf_fast, get_smart_print
 )
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
@@ -73,8 +74,8 @@ def get_round_keys(speck_instance, rounds, master_key):
     return round_keys
 
 
-def get_implicit_affine_layers(
-        speck_instance, rounds, master_key, only_x_names=True,
+def get_unencoded_implicit_affine_layers(
+        speck_instance, rounds, master_key, only_x_names=False,
         return_explicit_affine_layers=False,
         return_implicit_round_functions=False  # only needed for debugging
 ):
@@ -193,6 +194,44 @@ def get_implicit_affine_layers(
         return implicit_round_functions, bpr_pmodadd
 
 
+def bitvectors_to_gf2vector(x, y, ws):
+    return sage.all.vector(sage.all.GF(2), list(int2vector(x, ws)) + list(int2vector(y, ws)))
+
+
+def gf2vector_to_bitvectors(v, ws):
+    return vector2int(v[:ws]), vector2int(v[ws:])
+
+
+def get_first_and_last_explicit_rounds(speck_instance, print_intermediate_values, filename=None):
+    n = ws = speck_instance.ws
+    alpha = speck_instance.alpha
+
+    smart_print = get_smart_print(filename)
+
+    def RotateRight_Identity(val, right_operand):
+        r, width = alpha, n
+        mask = 2 ** width - 1
+        r = r % width
+        return ((val & mask) >> r) | (val << (width - r) & mask), right_operand
+
+    def PermutedBvAdd(x, y):
+        return (x + y) % (2 ** n), y
+
+    def first_explicit_round(v):
+        x, y = gf2vector_to_bitvectors(v, ws)
+        if print_intermediate_values:
+            smart_print(f"\nplaintext:\n - ({hex(x)}, {hex(y)}) = {bitvectors_to_gf2vector(x, y, ws)}")
+        x, y = RotateRight_Identity(x, y)
+        x, y = PermutedBvAdd(x, y)
+        v = bitvectors_to_gf2vector(x, y, ws)
+        if print_intermediate_values:
+            smart_print(f"\nRotateRight_Identity and PermutedBvAdd:\n - output | ({hex(x)}, {hex(y)}) = {v}")
+            smart_print("")
+        return v
+
+    return first_explicit_round, None
+
+
 if __name__ == '__main__':
     # speck_instance = Speck_8_16
     speck_instance = Speck_32_64
@@ -209,8 +248,10 @@ if __name__ == '__main__':
         master_key = (0x1b1a1918, 0x13121110, 0x0b0a0908, 0x03020100)
     elif speck_instance == Speck_128_256:
         master_key = (0x1f1e1d1c1b1a1918, 0x1716151413121110, 0x0f0e0d0c0b0a0908, 0x0706050403020100)
+    else:
+        raise ValueError("invalid instance")
 
-    implicit_affine_layers, _ = get_implicit_affine_layers(speck_instance, rounds, master_key)
+    implicit_affine_layers, _ = get_unencoded_implicit_affine_layers(speck_instance, rounds, master_key)
 
     for i in range(len(implicit_affine_layers)):
         print(f"round {i}:")
