@@ -73,7 +73,11 @@ def get_round_keys(speck_instance, rounds, master_key):
     return round_keys
 
 
-def get_implicit_round_functions(speck_instance, rounds, master_key, only_affine_layer=False, only_x_names=True, return_explicit_affine_layers=False):
+def get_implicit_affine_layers(
+        speck_instance, rounds, master_key, only_x_names=True,
+        return_explicit_affine_layers=False,
+        return_implicit_round_functions=False  # only needed for debugging
+):
     n = speck_instance.ws
     alpha = speck_instance.alpha
     beta = speck_instance.beta
@@ -139,7 +143,7 @@ def get_implicit_round_functions(speck_instance, rounds, master_key, only_affine
                 [zero_matrix(2*ws, 2*ws), identity_matrix(2*ws)]])
             cta = list(affine[1]) + [0 for _ in range(2*ws)]
             anf = matrix2anf(matrix, bool_poly_ring=bpr_pmodadd, bin_vector=cta)
-            if only_affine_layer:
+            if not return_implicit_round_functions:
                 implicit_round_functions.append(anf)
             else:
                 implicit_round_functions.append(compose_anf_fast(implicit_pmodadd, anf))
@@ -174,7 +178,7 @@ def get_implicit_round_functions(speck_instance, rounds, master_key, only_affine
 
             anf = compose_anf_fast(anf1, anf2)
 
-            if only_affine_layer:
+            if not return_implicit_round_functions:
                 implicit_round_functions.append(anf)
             else:
                 implicit_round_functions.append(compose_anf_fast(implicit_pmodadd, anf))
@@ -206,9 +210,9 @@ if __name__ == '__main__':
     elif speck_instance == Speck_128_256:
         master_key = (0x1f1e1d1c1b1a1918, 0x1716151413121110, 0x0f0e0d0c0b0a0908, 0x0706050403020100)
 
-    implicit_round_functions, _ = get_implicit_round_functions(speck_instance, rounds, master_key)
+    implicit_affine_layers, _ = get_implicit_affine_layers(speck_instance, rounds, master_key)
 
-    for i in range(len(implicit_round_functions)):
+    for i in range(len(implicit_affine_layers)):
         print(f"round {i}:")
-        for j in range(len(implicit_round_functions[i])):
-            print(f"implicit_round_functions[round={i}][component={j}]:", implicit_round_functions[i][j])
+        for j in range(len(implicit_affine_layers[i])):
+            print(f"implicit_affine_layers[round={i}][component={j}]:", implicit_affine_layers[i][j])

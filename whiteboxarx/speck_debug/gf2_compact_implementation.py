@@ -7,7 +7,7 @@ from boolcrypt.utilities import (
 
 from boolcrypt.functionalequations import find_fixed_vars
 
-from whiteboxarx.speck import get_implicit_round_functions
+from whiteboxarx.speck import get_implicit_affine_layers
 
 
 def get_encryption(speck_instance, rounds, master_key):
@@ -31,7 +31,8 @@ def get_encryption(speck_instance, rounds, master_key):
     def gf2vector_to_bitvectors(v):
         return vector2int(v[:ws]), vector2int(v[ws:])
 
-    implicit_round_functions, bpr_pmodadd = get_implicit_round_functions(speck_instance, rounds, master_key)
+    implicit_round_functions, bpr_pmodadd = get_implicit_affine_layers(
+        speck_instance, rounds, master_key, return_implicit_round_functions=True)
 
     ordered_replacement = []
     assert len(bpr_pmodadd.gens()) == 4*ws
