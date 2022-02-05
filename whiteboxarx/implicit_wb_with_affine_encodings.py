@@ -25,8 +25,6 @@ from boolcrypt.se_pmodadd.find_implicit import graph_cczse_coeffs2modadd_cczse_a
 
 # TODO: (adrian) finish get_graph_automorphisms
 # TODO: (adrian) implement USE_REDUNDANT_PERTURBATIONS and search for exceptions
-# TODO: (adrian) add definition of USE_REDUNDANT_PERTURBATIONS
-# TODO: (adrian) add definitions of TRIVIAL_*
 
 # TODO: seed should be a parameter
 SEED = abs(hash("eurocrypt2021"))
