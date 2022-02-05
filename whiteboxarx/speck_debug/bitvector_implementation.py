@@ -1,8 +1,7 @@
 """Unprotected implementation of Speck with bitvector operations."""
-from whiteboxarx.speck_debug.test_vectors import get_round_keys, run_test_vectors
 
 
-def get_encryption(speck_instance, rounds, master_key):
+def get_encryption(speck_instance, rounds, round_keys):
     """Return an instance of the Speck family."""
     default_rounds = speck_instance.default_rounds
     n = speck_instance.ws
@@ -28,8 +27,6 @@ def get_encryption(speck_instance, rounds, master_key):
     #
     # def BvAdd(x, y):
     #     return (x + y) % (2 ** n)
-
-    round_keys = get_round_keys(speck_instance, rounds, master_key)
 
     # def rf(x, y, k):
     #     x = BvAdd(RotateRight(x, alpha), y) ^ k
@@ -115,4 +112,5 @@ def get_encryption(speck_instance, rounds, master_key):
 
 
 if __name__ == '__main__':
+    from whiteboxarx.speck_debug.test_vectors import run_test_vectors
     run_test_vectors(get_encryption)

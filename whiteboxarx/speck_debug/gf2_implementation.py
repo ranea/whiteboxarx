@@ -12,10 +12,8 @@ from boolcrypt.functionalequations import find_fixed_vars
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
-from whiteboxarx.speck_debug.test_vectors import get_round_keys, run_test_vectors
 
-
-def get_encryption(speck_instance, rounds, master_key):
+def get_encryption(speck_instance, rounds, round_keys):
     """Return an instance of the Speck family."""
     default_rounds = speck_instance.default_rounds
     n = speck_instance.ws
@@ -111,8 +109,6 @@ def get_encryption(speck_instance, rounds, master_key):
     def Identity_Xor(v):
         return identity_xor_matrix * v
 
-    round_keys = get_round_keys(speck_instance, rounds, master_key)
-
     for i in range(len(round_keys)):
         round_keys[i] = bitvectors_to_gf2vector(round_keys[i], 0)
 
@@ -148,4 +144,5 @@ def get_encryption(speck_instance, rounds, master_key):
 
 
 if __name__ == '__main__':
+    from whiteboxarx.speck_debug.test_vectors import run_test_vectors
     run_test_vectors(get_encryption)

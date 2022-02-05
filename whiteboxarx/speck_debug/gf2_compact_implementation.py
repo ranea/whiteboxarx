@@ -7,8 +7,6 @@ from boolcrypt.utilities import (
 
 from boolcrypt.functionalequations import find_fixed_vars
 
-from whiteboxarx.speck_debug.test_vectors import run_test_vectors
-
 from whiteboxarx.speck import get_implicit_round_functions
 
 
@@ -91,4 +89,5 @@ def get_encryption(speck_instance, rounds, master_key):
 
 
 if __name__ == '__main__':
-    run_test_vectors(get_encryption)
+    from whiteboxarx.speck_debug.test_vectors import run_test_vectors
+    run_test_vectors(get_encryption, use_rounds_keys=False)
