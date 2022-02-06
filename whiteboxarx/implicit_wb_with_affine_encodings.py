@@ -17,31 +17,29 @@ from boolcrypt.functionalequations import (
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
-# TODO: (adrian) implement USE_REDUNDANT_PERTURBATIONS and search for exceptions
 
-# TODO: seed should be a parameter
+# -- Script parameters --
+
 SEED = abs(hash("eurocrypt2021"))
+
+USE_REDUNDANT_PERTURBATIONS = True  # whether to add redundant perturbations to each implicit round function
+
+TRIVIAL_EE = False  # whether to use trivial external encodins
+TRIVIAL_GA = False  # whether to use trivial graph automorphisms (True, "repeat", or False)
+TRIVIAL_RP = False  # whether to use trivial redundant perturbations
+TRIVIAL_AE = False  # whether to use trivial affine encodings
+
+PRINT_TIME_GENERATION = True  # whether to print time when each step finished
+PRINT_DEBUG_GENERATION = True  # whether to print debug information
+PRINT_INTERMEDIATE_VALUES = True  # whether to print intermediate values in eval_implicit_wb_implementation
+PRINT_DEBUG_INTERMEDIATE_VALUES = True  # whether to print intermediate values in eval_round_function
+
+# ----
+
 sage.all.set_random_seed(SEED)
+assert not (USE_REDUNDANT_PERTURBATIONS is False and TRIVIAL_RP is True)
+_DEBUG_SPLIT_RP = False  # do not merge the redundant perturbations with the implicit round functions, _DEBUG_SPLIT_RP=True only meant for debugging
 
-# TODO: USE_REDUNDANT_PERTURBATIONS should be a parameter (but current code doesn't support USE_REDUNDANT_PERTURBATIONS=False)
-USE_REDUNDANT_PERTURBATIONS = True
-
-# TODO: TRIVIAL_* should be parameters
-TRIVIAL_EE = False
-TRIVIAL_GA = False  # True, "repeat", or False  # needed for TRIVIAL_QSE
-TRIVIAL_RP = False
-TRIVIAL_AP = False
-
-if USE_REDUNDANT_PERTURBATIONS is False:
-    assert TRIVIAL_RP is None
-
-# TODO: PRINT_* should be parameters
-PRINT_TIME_GENERATION = True
-PRINT_DEBUG_GENERATION = True
-PRINT_INTERMEDIATE_VALUES = True
-PRINT_DEBUG_INTERMEDIATE_VALUES = True
-
-_DEBUG_SPLIT_RP = False  # split the redundant perturbations, only for debugging
 
 AffineEncoding = collections.namedtuple('AffineEncoding', ['matrix', 'cta', 'bitsize', 'inverse'])
 
@@ -53,7 +51,7 @@ def get_random_affine_permutations(bitsize, number_of_permutations, bpr=None):
         bpr = sage.all.GF(2)
 
     def _get_affine_encoding():
-        if not TRIVIAL_AP:
+        if not TRIVIAL_AE:
             # while loop faster than sage.all.random_matrix(..., algorithm="unimodular")
             while True:
                 matrix = sage.all.matrix(bpr, bitsize, entries=[vs.random_element() for _ in range(bitsize)])
@@ -313,7 +311,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
         smart_print(f" - rounds: {rounds}")
         smart_print(f" - seed: {SEED}")
         smart_print(f" - USE_REDUNDANT_PERTURBATIONS: {USE_REDUNDANT_PERTURBATIONS}")
-        smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AP: {[TRIVIAL_EE,TRIVIAL_GA,TRIVIAL_RP,TRIVIAL_AP]}")
+        smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AP: {[TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE]}")
         smart_print()
 
     bpr_pmodadd = implicit_affine_layers[0][0].parent()
@@ -355,8 +353,8 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
         assert max(degs) == 2
         list_degs.append(degs)
 
-        list_anfs = []
         if USE_REDUNDANT_PERTURBATIONS:
+            list_anfs = []
             for index_rp, rp in enumerate(redundant_perturbations[i]):
                 assert len(anf) == len(rp)
                 if _DEBUG_SPLIT_RP:
@@ -369,10 +367,9 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
                     list_anfs.append(perturbed_anf)
             if not _DEBUG_SPLIT_RP:
                 assert bpr_pmodadd == list_anfs[0][0].parent()
+            implicit_round_functions.append(list_anfs)
         else:
-            list_anfs.append(anf)
-
-        implicit_round_functions.append(list_anfs)
+            implicit_round_functions.append(anf)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round functions with degrees {[collections.Counter(degs) for degs in list_degs]}")
@@ -403,13 +400,13 @@ def get_eval_implicit_wb_implementation(
 
     smart_print = get_smart_print(filename)
 
-    if USE_REDUNDANT_PERTURBATIONS is False:
-        raise NotImplementedError("")
-    
-    if not _DEBUG_SPLIT_RP:
-        bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round, perturbed system, component
+    if not USE_REDUNDANT_PERTURBATIONS:
+        bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
     else:
-        bpr_pmodadd = encoded_implicit_round_functions[0][0][0][0].parent()
+        if not _DEBUG_SPLIT_RP:
+            bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+        else:
+            bpr_pmodadd = encoded_implicit_round_functions[0][0][0][0].parent()  # round 0, perturbed system 0, anf, component boolean function 0
 
     ordered_replacement = []
     assert len(bpr_pmodadd.gens()) == 4*ws
@@ -460,25 +457,33 @@ def get_eval_implicit_wb_implementation(
         else:
             list_outputs = []
 
-            for index_irf, implicit_rf in enumerate(encoded_implicit_round_functions[round_index]):
+            if not USE_REDUNDANT_PERTURBATIONS:
+                systems_in_round_i = [encoded_implicit_round_functions[round_index]]
+            else:
+                systems_in_round_i = encoded_implicit_round_functions[round_index]
+
+            for index_irf, implicit_rf in enumerate(systems_in_round_i):
                 system = [substitute_variables(bpr_pmodadd, ordered_replacement_copy, f) for f in implicit_rf]
 
                 if PRINT_DEBUG_INTERMEDIATE_VALUES:
-                    smart_print(f" - perturbed system {index_irf}:")
+                    smart_print(f" - {'' if USE_REDUNDANT_PERTURBATIONS else 'non-'}perturbed system {index_irf}:")
                     if ws == 4:
                         smart_print(f"   > equations                           : {implicit_rf}")
                         smart_print(f"   > (after substitution) equations      : {system}")
 
                 if not all(f.degree() <= 1 for f in system):  # assuming QUASILINEAR_RP is True
-                    raise ValueError("found non-quasilinear perturbed system")
+                    raise ValueError(f"implicit round function {index_irf} is not quasilinear "
+                                     f"(has degrees {[f.degree() for f in system]} after fixing the input variables)")
 
                 try:
                     fixed_vars, new_equations = find_fixed_vars(
                         system, only_linear=True, initial_r_mode="gauss", repeat_with_r_mode=None,
                         initial_fixed_vars=None, bpr=bpr_pmodadd, check=False, verbose=False, debug=False, filename=None)
                 except ValueError as e:
+                    if not USE_REDUNDANT_PERTURBATIONS:
+                        raise ValueError(f"implicit round function {index_irf} has no solution, found error {e}")
                     if PRINT_DEBUG_INTERMEDIATE_VALUES:
-                        smart_print(f"   > invalid system                      : {e}")
+                        smart_print(f"   > invalid perturbed system            : {e}")
                     assert str(e).startswith("found 0 == 1")
                     continue
 
@@ -488,8 +493,10 @@ def get_eval_implicit_wb_implementation(
 
                 found_non_cta = any(v not in [0, 1] for v in fixed_vars.values())
                 if found_non_cta or len(new_equations) >= 1:
+                    if not USE_REDUNDANT_PERTURBATIONS:
+                        raise ValueError(f"implicit round function {index_irf} has no unique solution")
                     if PRINT_DEBUG_INTERMEDIATE_VALUES:
-                        smart_print(" = INVALID")
+                        smart_print(f"   > invalid perturbed system            : multiple solutions")
                     continue
 
                 assert len(new_equations) == 0, f"{fixed_vars}\n{list(new_equations)}"
@@ -498,19 +505,30 @@ def get_eval_implicit_wb_implementation(
                 # v = sage.all.vector(sage.all.GF(2), sol)
                 if PRINT_DEBUG_INTERMEDIATE_VALUES:
                     smart_print(f" = {sol}")
-                if None not in sol:
-                    list_outputs.append(tuple(sol))
 
-            occurrences = collections.Counter(list_outputs)
+                if None in sol:
+                    if not USE_REDUNDANT_PERTURBATIONS:
+                        raise ValueError(f"implicit round function {index_irf} has no unique solution")
+                    if PRINT_DEBUG_INTERMEDIATE_VALUES:
+                        smart_print(f"   > invalid perturbed system            : multiple solutions")
 
-            if PRINT_DEBUG_INTERMEDIATE_VALUES:
-                smart_print(f" - output = most_common({occurrences})")
+                list_outputs.append(tuple(sol))
 
-            if len(occurrences) >= 2:
-                (v0, n0), (_, n1) = occurrences.most_common(2)
-                assert n0 >= 2 and n0 > n1, f"{occurrences}\n{list_outputs}"
+            if not USE_REDUNDANT_PERTURBATIONS:
+                assert len(list_outputs) == 1
+                v0 = list_outputs[0]
             else:
-                v0, _ = occurrences.most_common(1)[0]
+                assert 1 <= len(list_outputs) <= 4
+                occurrences = collections.Counter(list_outputs)
+
+                if PRINT_DEBUG_INTERMEDIATE_VALUES:
+                    smart_print(f" - output = most_common({occurrences})")
+
+                if len(occurrences) >= 2:
+                    (v0, n0), (_, n1) = occurrences.most_common(2)
+                    assert n0 >= 2 and n0 > n1, f"{occurrences}\n{list_outputs}"
+                else:
+                    v0, _ = occurrences.most_common(1)[0]
 
         return sage.all.vector(sage.all.GF(2), v0)
 
