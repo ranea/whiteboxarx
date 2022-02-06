@@ -139,11 +139,10 @@ def write_integer_with_encoding(my_integer, opened_file_object, encoding_mode=Fa
 def export_implicit_functions_to_C(
         wordsize, encoded_implicit_round_functions, max_degree, use_redundant_perturbations,
         filename_C_info, filename_C_array, encoding_mode, print_time_generation=False):
-    # TODO: (adrian) implement USE_REDUNDANT_PERTURBATIONS = False
-    if use_redundant_perturbations is False:
-        raise NotImplementedError("")
-
-    bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round, perturbed system, component
+    if not use_redundant_perturbations:
+        bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
+    else:
+        bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
 
     ws = wordsize
     assert ws == len(bpr_pmodadd.gens()) // 4
@@ -151,18 +150,26 @@ def export_implicit_functions_to_C(
     smart_print_C_info = get_smart_print(filename_C_info)
     smart_print_C_array_header = get_smart_print(filename_C_array)
 
+    if not use_redundant_perturbations:
+        num_perturbed_system_per_round = 1
+        num_eqs_per_system = len(encoded_implicit_round_functions[0])
+        assert all(num_eqs_per_system == len(encoded_implicit_round_functions[i]) for i in range(len(encoded_implicit_round_functions)))
+    else:
+        num_perturbed_system_per_round = 4
+        num_eqs_per_system = len(encoded_implicit_round_functions[0][0])
+        for j in range(4):
+            for i in range(len(encoded_implicit_round_functions)):
+                assert all(num_eqs_per_system == len(encoded_implicit_round_functions[i][j]))
+    assert num_eqs_per_system == 2*ws  # num eqs per system
+
     input_vars = bpr_pmodadd.gens()[:2*ws]
     output_vars = bpr_pmodadd.gens()[2*ws:]
-    num_perturbed_system_per_round = 4
-
-    num_eqs_per_system = len(encoded_implicit_round_functions[0][0])
-    assert num_eqs_per_system == 2*ws  # num eqs per system
     num_words_per_monomial = int(math.ceil(num_eqs_per_system / 8))
 
     if filename_C_info is None:
         smart_print_C_info("")
     smart_print_C_info(f"// number of implicit round functions (IRF): {len(encoded_implicit_round_functions)}")
-    smart_print_C_info(f"// number of perturbed system of each IRF: {num_perturbed_system_per_round}")
+    smart_print_C_info(f"// number of {'' if use_redundant_perturbations else 'non-'}perturbed system of each IRF: {num_perturbed_system_per_round}")
     smart_print_C_info(f"// number of equations in each perturbed system: {num_eqs_per_system}")
     smart_print_C_info(f"// algebraic degree of all equations: {max_degree}")
     smart_print_C_info(f"// input variables of all equations (total={len(input_vars)}): {input_vars}")
@@ -186,19 +193,24 @@ def export_implicit_functions_to_C(
     smart_print_C_array_header(f"#define MONOMIAL_WORD_TYPE uint8_t")
     smart_print_C_array_header(f"#define MONOMIAL_WORD_SIZE 8")
 
+    list_zero = [0]*(num_eqs_per_system - 1)
     sorted_monomials = None
 
-    list_zero = [0]*(num_eqs_per_system - 1)
+    for round_index in range(len(encoded_implicit_round_functions)):
+        if not use_redundant_perturbations:
+            boolean_systems_in_round_i = [encoded_implicit_round_functions[round_index]]
+            assert len(boolean_systems_in_round_i) == 1
+        else:
+            boolean_systems_in_round_i = encoded_implicit_round_functions[round_index]
+            assert len(boolean_systems_in_round_i) == 4
 
-    for index_irf, irf in enumerate(encoded_implicit_round_functions):
-        assert len(irf) == 4
         total_num_zero_coeffs = 0
 
-        for index_ps, perturbed_system in enumerate(irf):
-            assert len(perturbed_system) == 2*ws == num_eqs_per_system
+        for _, boolean_system in enumerate(boolean_systems_in_round_i):
+            assert len(boolean_system) == 2*ws == num_eqs_per_system
             list_sorted_coeffs = None
 
-            for index_eq, eq in enumerate(perturbed_system):
+            for index_eq, eq in enumerate(boolean_system):
                 sorted_coeffs, new_sorted_monomials, num_zero_coeffs = bool_poly2sorted_coeffs(
                     eq, input_vars, output_vars, max_degree, store_sorted_monomials=sorted_monomials is None)
 
@@ -246,7 +258,7 @@ def export_implicit_functions_to_C(
                     write_integer_with_encoding(small_integer, opened_file_object=fileobject_C_array, encoding_mode=encoding_mode)
 
         if print_time_generation:
-            smart_print_C_info(f"\n{get_time()} | exported {index_irf}-th implicit round function with num zero coefficients {total_num_zero_coeffs}")
+            smart_print_C_info(f"\n{get_time()} | exported {round_index}-th implicit round function with num zero coefficients {total_num_zero_coeffs}")
 
     if fileobject_C_array is not None:
         fileobject_C_array.close()

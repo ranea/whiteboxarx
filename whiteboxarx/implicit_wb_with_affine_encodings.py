@@ -459,8 +459,10 @@ def get_eval_implicit_wb_implementation(
 
             if not USE_REDUNDANT_PERTURBATIONS:
                 systems_in_round_i = [encoded_implicit_round_functions[round_index]]
+                assert len(systems_in_round_i) == 1
             else:
                 systems_in_round_i = encoded_implicit_round_functions[round_index]
+                assert len(systems_in_round_i) == 4
 
             for index_irf, implicit_rf in enumerate(systems_in_round_i):
                 system = [substitute_variables(bpr_pmodadd, ordered_replacement_copy, f) for f in implicit_rf]
