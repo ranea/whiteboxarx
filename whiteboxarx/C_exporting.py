@@ -151,11 +151,11 @@ def export_implicit_functions_to_C(
     smart_print_C_array_header = get_smart_print(filename_C_array)
 
     if not use_redundant_perturbations:
-        num_perturbed_system_per_round = 1
+        num_boolean_systems_per_round = 1
         num_eqs_per_system = len(encoded_implicit_round_functions[0])
         assert all(num_eqs_per_system == len(encoded_implicit_round_functions[i]) for i in range(len(encoded_implicit_round_functions)))
     else:
-        num_perturbed_system_per_round = 4
+        num_boolean_systems_per_round = 4
         num_eqs_per_system = len(encoded_implicit_round_functions[0][0])
         for j in range(4):
             for i in range(len(encoded_implicit_round_functions)):
@@ -169,8 +169,8 @@ def export_implicit_functions_to_C(
     if filename_C_info is None:
         smart_print_C_info("")
     smart_print_C_info(f"// number of implicit round functions (IRF): {len(encoded_implicit_round_functions)}")
-    smart_print_C_info(f"// number of {'' if use_redundant_perturbations else 'non-'}perturbed system of each IRF: {num_perturbed_system_per_round}")
-    smart_print_C_info(f"// number of equations in each perturbed system: {num_eqs_per_system}")
+    smart_print_C_info(f"// number of {'' if use_redundant_perturbations else 'non-'}perturbed system of each IRF: {num_boolean_systems_per_round}")
+    smart_print_C_info(f"// number of equations in each {'' if use_redundant_perturbations else 'non-'}perturbed system: {num_eqs_per_system}")
     smart_print_C_info(f"// algebraic degree of all equations: {max_degree}")
     smart_print_C_info(f"// input variables of all equations (total={len(input_vars)}): {input_vars}")
     smart_print_C_info(f"// output variables of all equations (total={len(output_vars)}): {output_vars}")
@@ -218,12 +218,12 @@ def export_implicit_functions_to_C(
 
                 if sorted_monomials is None:
                     sorted_monomials = new_sorted_monomials
-                    total_number_monomials = len(sorted_monomials) * num_perturbed_system_per_round * len(encoded_implicit_round_functions)
+                    total_number_monomials = len(sorted_monomials) * num_boolean_systems_per_round * len(encoded_implicit_round_functions)
                     total_number_monomial_words = total_number_monomials * num_words_per_monomial
 
                     smart_print_C_info(f"// monomial ordering used (total={len(sorted_monomials)}): {sorted_monomials}")
                     smart_print_C_info(f"// total number of monomials = {total_number_monomials} = "
-                                       f"({len(sorted_monomials)} monomials) x ({num_perturbed_system_per_round} num_perturbed_system_per_round)"
+                                       f"({len(sorted_monomials)} monomials) x ({num_boolean_systems_per_round} num_boolean_systems_per_round)"
                                        f" x ({len(encoded_implicit_round_functions)} IRF)")
                     smart_print_C_info(f"// total number of monomial words = {total_number_monomial_words} = "
                                        f"({total_number_monomials} total_number_monomials) x ({num_words_per_monomial} num_words_per_monomial)\n")
