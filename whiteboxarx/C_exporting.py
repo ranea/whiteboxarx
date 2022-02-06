@@ -159,7 +159,7 @@ def export_implicit_functions_to_C(
         num_eqs_per_system = len(encoded_implicit_round_functions[0][0])
         for j in range(4):
             for i in range(len(encoded_implicit_round_functions)):
-                assert all(num_eqs_per_system == len(encoded_implicit_round_functions[i][j]))
+                assert num_eqs_per_system == len(encoded_implicit_round_functions[i][j])
     assert num_eqs_per_system == 2*ws  # num eqs per system
 
     input_vars = bpr_pmodadd.gens()[:2*ws]
