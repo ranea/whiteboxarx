@@ -78,6 +78,11 @@ if __name__ == '__main__':
         first_explicit_round, last_explicit_round = speck.get_first_and_last_explicit_rounds(
             speck_instance, PRINT_INTERMEDIATE_VALUES, filename=filename_debug)
 
+        if not use_test_vector_key:
+            # explicit_*_function cancel the input/output external encodings (to get same output as unencoded test vectors)
+            explicit_extin_function = None
+            explicit_extout_function = None
+
         eval_wb = get_eval_implicit_wb_implementation(
             ws, encoded_implicit_round_functions, filename=filename_debug,
             explicit_extin_function=explicit_extin_function, explicit_extout_function=explicit_extout_function,
@@ -88,9 +93,9 @@ if __name__ == '__main__':
         plaintext = sage.all.vector(sage.all.GF(2), [0]*(2*ws))
         print(f"\nEvaluating implicit white-box implementation with input {plaintext}\n")
         ciphertext = eval_wb(plaintext)
-        print(f"\nCiphertext = {ciphertext}")
+        print(f"\nCiphertext = {ciphertext}\n")
 
-        # Speck test vectors
+        # Speck-specific code for test vectors
         if use_test_vector_key:
             if speck_instance == speck.Speck_8_16:
                 plaintext = (1, 2)
@@ -100,15 +105,15 @@ if __name__ == '__main__':
                 plaintext = (0x3b726574, 0x7475432d)
             elif speck_instance == speck.Speck_128_256:
                 plaintext = (0x65736f6874206e49, 0x202e72656e6f6f70)
-            plaintext = speck.bitvectors_to_gf2vector(plaintext, ws)
-            ciphertext = eval_wb(*plaintext)
+            plaintext = speck.bitvectors_to_gf2vector(*plaintext, ws)
+            ciphertext = eval_wb(plaintext)
             ciphertext = speck.gf2vector_to_bitvectors(ciphertext, ws)
             if TRIVIAL_EE or (explicit_extin_function is not None and explicit_extout_function is not None):
                 if speck_instance == speck.Speck_8_16:
-                    assert ciphertext == (4, 8)
+                    assert ciphertext == (4, 8), f"{ciphertext}"
                 elif speck_instance == speck.Speck_32_64:
-                    assert ciphertext == (0xa868, 0x42f2)
+                    assert ciphertext == (0xa868, 0x42f2), f"{ciphertext}"
                 elif speck_instance == speck.Speck_64_128:
-                    assert ciphertext == (0x8c6fa548, 0x454e028b)
+                    assert ciphertext == (0x8c6fa548, 0x454e028b), f"{ciphertext}"
                 elif speck_instance == speck.Speck_128_256:
-                    assert ciphertext == (0x4109010405c0f53e, 0x4eeeb48d9c188f43)
+                    assert ciphertext == (0x4109010405c0f53e, 0x4eeeb48d9c188f43), f"{ciphertext}"

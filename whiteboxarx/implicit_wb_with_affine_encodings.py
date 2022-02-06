@@ -14,10 +14,12 @@ from boolcrypt.utilities import (
     substitute_variables, BooleanPolynomialRing,
     int2vector, vector2int, get_anf_coeffmatrix_str,
     compose_affine, matrix2anf, compose_anf_fast, anf2matrix,
-    get_time, get_smart_print, get_all_symbolic_coeff
+    get_time, get_smart_print, get_all_symbolic_coeff, get_symbolic_anf
 )
 
-from boolcrypt.functionalequations import find_fixed_vars
+from boolcrypt.functionalequations import (
+    find_fixed_vars, solve_functional_equation
+)
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
@@ -112,11 +114,11 @@ def get_implicit_round_encodings(wordsize, rounds, bpr_pmodadd=None):
     # bpr_ext = BooleanPolynomialRing(names=bpr_pmodadd.variable_names()[:2*ws], order="deglex")
     # identity_anf = bpr_pmodadd.gens()
 
-    implicit_round_encodings = [None for _ in range(rounds - 1)]
+    implicit_round_encodings = [None for _ in range(rounds)]
 
-    affine_encodings = get_random_affine_permutations(2 * ws, rounds - 2)
+    affine_encodings = get_random_affine_permutations(2 * ws, rounds - 1)
 
-    for i in range(rounds - 1):
+    for i in range(rounds):
         if i == 0:
             if TRIVIAL_EE:
                 input_ee_matrix = identity_matrix(2*ws)
@@ -130,14 +132,14 @@ def get_implicit_round_encodings(wordsize, rounds, bpr_pmodadd=None):
                 [zero_matrix(2*ws, 2*ws), affine_encodings[i].matrix]])
             cta = input_ee_cta + list(affine_encodings[i].cta)
             implicit_round_encodings[i] = matrix2anf(matrix, bool_poly_ring=bpr_pmodadd, bin_vector=cta)
-        elif 1 <= i < rounds - 2:
+        elif 1 <= i < rounds - 1:
             matrix = sage.all.block_matrix(bpr, 2, 2, [
                 [affine_encodings[i-1].matrix, zero_matrix(2*ws, 2*ws)],
                 [zero_matrix(2*ws, 2*ws), affine_encodings[i].matrix]])
             cta = list(affine_encodings[i-1].cta) + list(affine_encodings[i].cta)
             implicit_round_encodings[i] = matrix2anf(matrix, bool_poly_ring=bpr_pmodadd, bin_vector=cta)
         else:
-            assert i == rounds - 2
+            assert i == rounds - 1
             if TRIVIAL_EE:
                 output_ee_matrix = identity_matrix(2*ws)
                 output_ee_cta = [0 for _ in range(2*ws)]
@@ -182,13 +184,10 @@ def get_graph_automorphisms(wordsize, rounds, filename):
         identity_matrix = partial(sage.all.identity_matrix, bpr)
 
         list_graph_automorphisms = []
-        for i in range(rounds - 1):
+        for i in range(rounds):
             list_graph_automorphisms.append(matrix2anf(identity_matrix(4*ws), bool_poly_ring=bpr))
 
         return list_graph_automorphisms
-
-    from boolcrypt.functionalequations import solve_functional_equation
-    from boolcrypt.utilities import get_symbolic_anf
 
     try:
         filename_sobj = f"data/stored_cczse_pmodadd_w{wordsize}.sobj"
@@ -197,6 +196,13 @@ def get_graph_automorphisms(wordsize, rounds, filename):
         filename_sobj = f"whiteboxarx/data/stored_cczse_pmodadd_w{wordsize}.sobj"
         coeff2expr, equations = sage.all.load(filename_sobj, compress=True)
     l_c_linv = graph_cczse_coeffs2modadd_cczse_anf(coeff2expr, ws, verbose=False, debug=False, filename=None)
+
+    MAX_SAMPLES_PER_GA_SUBSET = 1000
+
+    # stored_cczse_pmodadd_w*.sobj contains subsets, each subset containing some graph automorphisms,
+    # but many of the functions in the subset are either non-invertible or right SE of T
+    # MAX_SAMPLES_PER_GA_SUBSET is the number of functions to try in each subset
+    # when looking for good graph automorphisms
 
     names_x = ["x" + str(i) for i in range(ws)]
     names_yzy = ["y" + str(i) for i in range(ws)] + ["z" + str(i) for i in range(ws)] + ["t" + str(i) for i in range(ws)]
@@ -223,7 +229,7 @@ def get_graph_automorphisms(wordsize, rounds, filename):
     if not list_extra_var2val:
         raise ValueError(f'equations from "stored_cczse_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
     if PRINT_DEBUG_GENERATION:
-        smart_print(f"get_graph_automorphims | found {len(list_extra_var2val)} extra_var2val-solutions for ws {wordsize}")
+        smart_print(f"get_graph_automorphims | found {len(list_extra_var2val)} subset of graph automorphisms to use for ws {wordsize}")
 
     list_graph_automorphisms = []
 
@@ -235,13 +241,12 @@ def get_graph_automorphisms(wordsize, rounds, filename):
         modadd_anf = get_modadd_anf(ws, permuted=True)
 
     # TODO: (adrian) choose final max_tries_per_index in get_graph_automorphisms
-    max_tries_per_index = 6
-    bad_indices = []
+    bad_subset = []
     while True:
         # not enough GA
-        if len(list_extra_var2val) >= len(bad_indices):  bad_indices = []
+        if len(list_extra_var2val) >= len(bad_subset):  bad_subset = []
         random_index = sage.all.ZZ.random_element(0, len(list_extra_var2val))
-        if random_index in bad_indices:
+        if random_index in bad_subset:
             continue
 
         ordered_replacement_copy = ordered_replacement[:]
@@ -250,7 +255,7 @@ def get_graph_automorphisms(wordsize, rounds, filename):
 
         ordered_replacement_copy_copy = ordered_replacement_copy[:]
 
-        for _ in range(max_tries_per_index):
+        for _ in range(MAX_SAMPLES_PER_GA_SUBSET):
             for j in range(4*ws, len(variable_names)):
                 if ordered_replacement_copy_copy[j] is None:
                     ordered_replacement_copy_copy[j] = bpr(sage.all.GF(2).random_element())
@@ -289,7 +294,7 @@ def get_graph_automorphisms(wordsize, rounds, filename):
                     break
         else:
             if PRINT_DEBUG_GENERATION: smart_print("|", end="")
-            bad_indices.append(random_index)
+            bad_subset.append(random_index)
             continue
 
         if wordsize <= 4:
@@ -298,11 +303,11 @@ def get_graph_automorphisms(wordsize, rounds, filename):
         list_graph_automorphisms.append(l_c_linv_i)
 
         if TRIVIAL_GA == "repeat":
-            for _ in range(len(list_graph_automorphisms), rounds - 1):
+            for _ in range(len(list_graph_automorphisms), rounds):
                 list_graph_automorphisms.append(l_c_linv_i)
-            assert len(list_graph_automorphisms) == rounds - 1
+            assert len(list_graph_automorphisms) == rounds
 
-        if len(list_graph_automorphisms) == rounds - 1:
+        if len(list_graph_automorphisms) == rounds:
             break
 
     return list_graph_automorphisms
@@ -315,7 +320,7 @@ def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr):
 
     if TRIVIAL_RP is True:
         list_redundant_perturbations = []
-        for i in range(rounds - 1):
+        for i in range(rounds):
             anf = [bpr(0) for _ in range(2*ws)]
             anf_one = [bpr(1) for _ in range(2*ws)]
             list_redundant_perturbations.append([anf, anf, anf, anf_one])
@@ -387,7 +392,7 @@ def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr):
         return a0, a1, b0, b1
 
     list_redundant_perturbations = []
-    for i in range(rounds - 1):
+    for i in range(rounds):
         while True:
             # only input variables
             l01 = bpr.random_element(degree=1, terms=sage.all.Infinity, vars_set=list(range(2*ws)))
@@ -457,7 +462,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
 
-    left_permutations = get_random_affine_permutations(2 * ws, rounds - 1, bpr=bpr_pmodadd)
+    left_permutations = get_random_affine_permutations(2 * ws, rounds, bpr=bpr_pmodadd)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated left permutations")
@@ -470,7 +475,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
 
     implicit_round_functions = []
     list_degs = []
-    for i in range(rounds - 1):
+    for i in range(rounds):
         anf = compose_anf_fast(implicit_pmodadd, graph_automorphisms[i])
         anf = compose_anf_fast(anf, implicit_affine_layers[i])
         anf = compose_anf_fast(anf, implicit_round_encodings[i])
