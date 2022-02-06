@@ -11,6 +11,8 @@ import sage.all
 
 
 if __name__ == '__main__':
+    # TODO: currently only usage for affine encodngs
+
     # ----- Speck generation of unencoded_implicit_affine_layers -----
 
     # Speck initial parameters
