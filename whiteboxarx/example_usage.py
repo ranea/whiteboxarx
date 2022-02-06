@@ -1,18 +1,16 @@
 import os
 
-from implicit_wb_with_affine_encodings import (
-    get_encoded_implicit_round_funcions, get_eval_implicit_wb_implementation
-)
-import speck
+import implicit_wb_with_affine_encodings
+import implicit_wb_with_quadratic_encodings
 
-from C_exporting import export_implicit_functions_to_C
+import C_exporting
+
+import speck
 
 import sage.all
 
 
 if __name__ == '__main__':
-    # TODO: currently only usage for affine encodngs
-
     # ----- Speck generation of unencoded_implicit_affine_layers -----
 
     # Speck initial parameters
@@ -46,6 +44,8 @@ if __name__ == '__main__':
         USE_REDUNDANT_PERTURBATIONS, PRINT_TIME_GENERATION, TRIVIAL_EE, PRINT_INTERMEDIATE_VALUES
     )
 
+    encoding_degree = 1
+
     export_to_C = False
     if export_to_C:
         encoding_mode = "bin"  # "hex", "bin", "bin_zero"
@@ -66,6 +66,13 @@ if __name__ == '__main__':
 
     # ----- generation of white-box implementation -----
 
+    if encoding_degree == 1:
+        get_encoded_implicit_round_funcions = implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions
+    elif encoding_degree == 2:
+        get_encoded_implicit_round_funcions = implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions
+    else:
+        raise ValueError("invalid encoding_degree")
+
     encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
         get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
 
@@ -76,8 +83,9 @@ if __name__ == '__main__':
     #         print(f"encoded_implicit_round_functions[round={i}][component={j}]:", encoded_implicit_round_functions[i][j])
 
     if export_to_C:
-        export_implicit_functions_to_C(ws, encoded_implicit_round_functions, 2, USE_REDUNDANT_PERTURBATIONS,
-                                       filename_c_info, filename_c_array, encoding_mode, PRINT_TIME_GENERATION)
+        C_exporting.export_implicit_functions_to_C(
+            ws, encoded_implicit_round_functions, 2, USE_REDUNDANT_PERTURBATIONS,
+            filename_c_info, filename_c_array, encoding_mode, PRINT_TIME_GENERATION)
     else:
         first_explicit_round, last_explicit_round = speck.get_first_and_last_explicit_rounds(
             speck_instance, PRINT_INTERMEDIATE_VALUES, filename=filename_debug)
@@ -87,7 +95,7 @@ if __name__ == '__main__':
             explicit_extin_function = None
             explicit_extout_function = None
 
-        eval_wb = get_eval_implicit_wb_implementation(
+        eval_wb = implicit_wb_with_affine_encodings.get_eval_implicit_wb_implementation(
             ws, encoded_implicit_round_functions, filename=filename_debug,
             explicit_extin_function=explicit_extin_function, explicit_extout_function=explicit_extout_function,
             first_explicit_round=first_explicit_round, last_explicit_round=last_explicit_round
