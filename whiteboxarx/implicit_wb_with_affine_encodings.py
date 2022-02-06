@@ -1,31 +1,22 @@
 """Implicit implementation with affine encodings."""
 import collections
-import functools
-import itertools
-import math
-import os
-import warnings
 from functools import partial
 
 import sage.all
-from sage.sat.boolean_polynomials import solve as solve_sat
 
 from boolcrypt.utilities import (
     substitute_variables, BooleanPolynomialRing,
-    int2vector, vector2int, get_anf_coeffmatrix_str,
-    compose_affine, matrix2anf, compose_anf_fast, anf2matrix,
-    get_time, get_smart_print, get_all_symbolic_coeff, get_symbolic_anf
+    vector2int,
+    matrix2anf, compose_anf_fast,
+    get_time, get_smart_print
 )
 
 from boolcrypt.functionalequations import (
-    find_fixed_vars, solve_functional_equation
+    find_fixed_vars
 )
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
-from boolcrypt.se_pmodadd.find_implicit import graph_cczse_coeffs2modadd_cczse_anf
-
-# TODO: (adrian) finish get_graph_automorphisms
 # TODO: (adrian) implement USE_REDUNDANT_PERTURBATIONS and search for exceptions
 
 # TODO: seed should be a parameter
@@ -175,8 +166,6 @@ def get_implicit_round_encodings(wordsize, rounds, bpr_pmodadd=None):
 def get_graph_automorphisms(wordsize, rounds, filename):
     ws = wordsize
 
-    smart_print = get_smart_print(filename)
-
     if TRIVIAL_GA is True:
         names = ["x" + str(i) for i in range(ws)] + ["y" + str(i) for i in range(ws)]
         names += ["z" + str(i) for i in range(ws)] + ["t" + str(i) for i in range(ws)]
@@ -188,129 +177,9 @@ def get_graph_automorphisms(wordsize, rounds, filename):
             list_graph_automorphisms.append(matrix2anf(identity_matrix(4*ws), bool_poly_ring=bpr))
 
         return list_graph_automorphisms
-
-    try:
-        filename_sobj = f"data/stored_cczse_pmodadd_w{wordsize}.sobj"
-        coeff2expr, equations = sage.all.load(filename_sobj, compress=True)
-    except FileNotFoundError:
-        filename_sobj = f"whiteboxarx/data/stored_cczse_pmodadd_w{wordsize}.sobj"
-        coeff2expr, equations = sage.all.load(filename_sobj, compress=True)
-    l_c_linv = graph_cczse_coeffs2modadd_cczse_anf(coeff2expr, ws, verbose=False, debug=False, filename=None)
-
-    MAX_SAMPLES_PER_GA_SUBSET = 1000
-
-    # stored_cczse_pmodadd_w*.sobj contains subsets, each subset containing some graph automorphisms,
-    # but many of the functions in the subset are either non-invertible or right SE of T
-    # MAX_SAMPLES_PER_GA_SUBSET is the number of functions to try in each subset
-    # when looking for good graph automorphisms
-
-    names_x = ["x" + str(i) for i in range(ws)]
-    names_yzy = ["y" + str(i) for i in range(ws)] + ["z" + str(i) for i in range(ws)] + ["t" + str(i) for i in range(ws)]
-    all_names = names_x + names_yzy + list(l_c_linv[0].parent().variable_names()[4*ws:])
-    bpr = BooleanPolynomialRing(names=all_names, order="deglex")
-    bpr_simple = BooleanPolynomialRing(names=names_x + names_yzy, order="deglex")
-
-    intermediate_bpr = BooleanPolynomialRing(names=all_names + ["x" + str(i) for i in range(ws, 4*ws)], order="deglex")
-    repr_to_bpr = {"x" + str(ws + i): intermediate_bpr(v_i) for i, v_i in enumerate(names_yzy)}
-
-    l_c_linv = [bpr(intermediate_bpr(f).subs(repr_to_bpr)) for f in l_c_linv]
-    equations = [bpr(intermediate_bpr(eq).subs(repr_to_bpr)) for eq in equations]  # eq is str
-
-    ordered_replacement = []
-    variable_names = bpr.variable_names()
-    strvar2index = lambda x: variable_names.index(x)
-    for i in range(len(variable_names)):
-        if i < 4*ws:
-            ordered_replacement.append(bpr.gens()[i])
-        else:
-            ordered_replacement.append(None)
-
-    list_extra_var2val = solve_sat(equations, n=sage.all.infinity)
-    if not list_extra_var2val:
-        raise ValueError(f'equations from "stored_cczse_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
-    if PRINT_DEBUG_GENERATION:
-        smart_print(f"get_graph_automorphims | found {len(list_extra_var2val)} subset of graph automorphisms to use for ws {wordsize}")
-
-    list_graph_automorphisms = []
-
-    implicit_pmodadd = [bpr_simple(str(f)) for f in get_implicit_modadd_anf(ws, permuted=True, only_x_names=False)]
-
-    if wordsize <= 4:
-        from boolcrypt.modularaddition import get_modadd_anf
-        from boolcrypt.equivalence import check_ccz_equivalence_anf
-        modadd_anf = get_modadd_anf(ws, permuted=True)
-
-    # TODO: (adrian) choose final max_tries_per_index in get_graph_automorphisms
-    bad_subset = []
-    while True:
-        # not enough GA
-        if len(list_extra_var2val) >= len(bad_subset):  bad_subset = []
-        random_index = sage.all.ZZ.random_element(0, len(list_extra_var2val))
-        if random_index in bad_subset:
-            continue
-
-        ordered_replacement_copy = ordered_replacement[:]
-        for k, v in list_extra_var2val[random_index].items():
-            ordered_replacement_copy[strvar2index(str(k))] = bpr(str(v))
-
-        ordered_replacement_copy_copy = ordered_replacement_copy[:]
-
-        for _ in range(MAX_SAMPLES_PER_GA_SUBSET):
-            for j in range(4*ws, len(variable_names)):
-                if ordered_replacement_copy_copy[j] is None:
-                    ordered_replacement_copy_copy[j] = bpr(sage.all.GF(2).random_element())
-
-            l_c_linv_i = [bpr_simple(str(substitute_variables(bpr, ordered_replacement_copy_copy, f))) for f in l_c_linv]
-            l_c_linv_i_matrix = anf2matrix(l_c_linv_i, bpr_simple.gens())
-
-            if PRINT_DEBUG_GENERATION: smart_print(".", end="")
-
-            if l_c_linv_i_matrix.is_invertible():
-                if PRINT_DEBUG_GENERATION: smart_print(":", end="")
-
-                # only 1 way to check a GA is not a right SE of T: symbolically T = B (T l_c_linv_i)
-                # (check_self_ae_anf not possible since we cannot get implicit_pmodadd_inv)
-                symbolic_anf = get_symbolic_anf(1, len(implicit_pmodadd), len(implicit_pmodadd), ct_terms=True, prefix_inputs="x")
-                try:
-                    solutions = solve_functional_equation(
-                        lhs_anfs=[l_c_linv_i, implicit_pmodadd, symbolic_anf],
-                        rhs_anfs=[implicit_pmodadd],
-                        lhs_input_vars=[bpr_simple.gens(), bpr_simple.gens(), ["x" + str(i) for i in range(len(implicit_pmodadd))]],
-                        rhs_input_vars=[bpr_simple.gens()],
-                        num_sat_solutions=1,
-                        return_mode="list_coeffs",
-                        only_linear_fixed_vars=True,
-                        verbose=False, debug=False, filename=None
-                        # print_common_nonlinear_vars=False,
-                    )
-                except ValueError as e:
-                    assert str(e).startswith("found invalid equation")
-                    to_break = True
-                else:
-                    to_break = solutions is None or len(solutions) == 0
-
-                if to_break:
-                    if PRINT_DEBUG_GENERATION: smart_print(";")
-                    break
-        else:
-            if PRINT_DEBUG_GENERATION: smart_print("|", end="")
-            bad_subset.append(random_index)
-            continue
-
-        if wordsize <= 4:
-            assert check_ccz_equivalence_anf(modadd_anf, modadd_anf, l_c_linv_i, a_input_vars=bpr_simple.gens())
-
-        list_graph_automorphisms.append(l_c_linv_i)
-
-        if TRIVIAL_GA == "repeat":
-            for _ in range(len(list_graph_automorphisms), rounds):
-                list_graph_automorphisms.append(l_c_linv_i)
-            assert len(list_graph_automorphisms) == rounds
-
-        if len(list_graph_automorphisms) == rounds:
-            break
-
-    return list_graph_automorphisms
+    else:
+        from graph_automorphisms import get_graph_automorphisms as gga
+        return gga(ws, rounds, filename, PRINT_DEBUG_GENERATION, use_same_ga_for_all_rounds=TRIVIAL_GA=="repeat")
 
 
 def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr):
