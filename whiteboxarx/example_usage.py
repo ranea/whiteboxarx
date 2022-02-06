@@ -44,7 +44,8 @@ if __name__ == '__main__':
         USE_REDUNDANT_PERTURBATIONS, PRINT_TIME_GENERATION, TRIVIAL_EE, PRINT_INTERMEDIATE_VALUES
     )
 
-    implicit_round_function_degree = 2  # 2, 3, 4
+    # degree of the encoded implicit round functions
+    irf_degree = 2  # 2, 3, 4
 
     export_to_C = False
     if export_to_C:
@@ -57,24 +58,24 @@ if __name__ == '__main__':
     filename_c_array = None
 
     """
-    filename_debug = f"intermediate_values_{speck_instance.name.lower()}_affine_{encoding_mode}.txt"
-    filename_c_info = f"equations_info_{speck_instance.name.lower()}_affine_{encoding_mode}.txt"
-    filename_c_array = f"equations_{speck_instance.name.lower()}_affine_{encoding_mode}.c"
+    filename_debug = f"intermediate_values_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.txt"
+    filename_c_info = f"equations_info_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.txt"
+    filename_c_array = f"equations_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.c"
     for fn in [filename_debug, filename_c_info, filename_c_array]:
         assert not os.path.isfile(fn), f"{fn} already exists"
     """
 
     # ----- generation of white-box implementation -----
 
-    if implicit_round_function_degree == 2:
+    if irf_degree == 2:
         # affine encodings
         get_encoded_implicit_round_funcions = implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions
-    elif implicit_round_function_degree in [3, 4]:
+    elif irf_degree in [3, 4]:
         # quadratic encodings
-        assert (implicit_round_function_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_MODE
+        assert (irf_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_MODE
         get_encoded_implicit_round_funcions = implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions
     else:
-        raise ValueError("invalid implicit_round_function_degree")
+        raise ValueError("invalid irf_degree")
 
     encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
         get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     if export_to_C:
         C_exporting.export_implicit_functions_to_C(
-            ws, encoded_implicit_round_functions, 2, USE_REDUNDANT_PERTURBATIONS,
+            ws, encoded_implicit_round_functions, irf_degree, USE_REDUNDANT_PERTURBATIONS,
             filename_c_info, filename_c_array, encoding_mode, PRINT_TIME_GENERATION)
     else:
         first_explicit_round, last_explicit_round = speck.get_first_and_last_explicit_rounds(
