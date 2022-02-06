@@ -76,7 +76,7 @@ def get_round_keys(speck_instance, rounds, master_key):
 
 def get_unencoded_implicit_affine_layers(
         speck_instance, rounds, master_key, only_x_names=False,
-        return_explicit_affine_layers=False,
+        return_also_explicit_affine_layers=False,
         return_implicit_round_functions=False  # only needed for debugging
 ):
     n = speck_instance.ws
@@ -148,7 +148,7 @@ def get_unencoded_implicit_affine_layers(
                 implicit_round_functions.append(anf)
             else:
                 implicit_round_functions.append(compose_anf_fast(implicit_pmodadd, anf))
-            if return_explicit_affine_layers:
+            if return_also_explicit_affine_layers:
                 explicit_affine_layers.append(affine)
         elif i == rounds - 2:
             # round function is explicit_affine_layers[-1][1] \circ S \circ explicit_affine_layers[-1][0]
@@ -162,7 +162,7 @@ def get_unencoded_implicit_affine_layers(
             cta = list(affine[1]) + [0 for _ in range(2*ws)]
             anf1 = matrix2anf(matrix, bool_poly_ring=bpr_pmodadd, bin_vector=cta)
 
-            if return_explicit_affine_layers:
+            if return_also_explicit_affine_layers:
                 explicit_affine_layers.append([affine])
 
             # A(x)          = L(x) + c
@@ -183,15 +183,15 @@ def get_unencoded_implicit_affine_layers(
                 implicit_round_functions.append(anf)
             else:
                 implicit_round_functions.append(compose_anf_fast(implicit_pmodadd, anf))
-            if return_explicit_affine_layers:
+            if return_also_explicit_affine_layers:
                 explicit_affine_layers[-1].append(affine)
         else:
             continue
 
-    if return_explicit_affine_layers:
-        return implicit_round_functions, explicit_affine_layers, bpr_pmodadd
+    if return_also_explicit_affine_layers:
+        return implicit_round_functions, explicit_affine_layers
     else:
-        return implicit_round_functions, bpr_pmodadd
+        return implicit_round_functions
 
 
 def bitvectors_to_gf2vector(x, y, ws):

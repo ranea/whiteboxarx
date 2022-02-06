@@ -15,8 +15,8 @@ if __name__ == '__main__':
 
     # Speck initial parameters
     use_test_vector_key = True
-    # speck_instance = speck.Speck_8_16
-    speck_instance = speck.Speck_32_64
+    speck_instance = speck.Speck_8_16
+    # speck_instance = speck.Speck_32_64
     # speck_instance = speck.Speck_64_128
     # speck_instance = speck.Speck_128_256
 
@@ -36,7 +36,8 @@ if __name__ == '__main__':
     else:
         master_key = [sage.all.ZZ.random_element(0, 2**ws) for _ in range(4)]
 
-    unencoded_implicit_affine_layers, _ = speck.get_unencoded_implicit_affine_layers(speck_instance, rounds, master_key)
+    unencoded_implicit_affine_layers, unencoded_explicit_affine_layers = speck.get_unencoded_implicit_affine_layers(
+        speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
 
     # ----- non-Speck initial parameters -----
 
@@ -69,16 +70,15 @@ if __name__ == '__main__':
 
     if irf_degree == 2:
         # affine encodings
-        get_encoded_implicit_round_funcions = implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions
+        encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
+            implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
     elif irf_degree in [3, 4]:
         # quadratic encodings
-        assert (irf_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_MODE
-        get_encoded_implicit_round_funcions = implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions
+        assert (irf_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_IRF
+        encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
+            implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, explicit_affine_layers=unencoded_explicit_affine_layers, filename=filename_debug)
     else:
         raise ValueError("invalid irf_degree")
-
-    encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
-        get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
 
     # # debug
     # for i in range(len(encoded_implicit_round_functions)):

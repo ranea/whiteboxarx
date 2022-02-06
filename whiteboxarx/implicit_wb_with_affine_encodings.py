@@ -86,19 +86,18 @@ def get_random_affine_permutations(bitsize, number_of_permutations, bpr=None):
     return affine_encodings
 
 
-def get_implicit_round_encodings(wordsize, rounds, bpr_pmodadd=None):
+def get_implicit_affine_round_encodings(wordsize, rounds):
     ws = wordsize
 
     bpr = sage.all.GF(2)
     identity_matrix = partial(sage.all.identity_matrix, bpr)
     zero_matrix = partial(sage.all.zero_matrix, bpr)
 
-    if bpr_pmodadd is None:
-        names = ["x" + str(i) for i in range(ws)]
-        names += ["y" + str(i) for i in range(ws)]
-        names += ["z" + str(i) for i in range(ws)]
-        names += ["t" + str(i) for i in range(ws)]
-        bpr_pmodadd = BooleanPolynomialRing(names=names, order="deglex")
+    names = ["x" + str(i) for i in range(ws)]
+    names += ["y" + str(i) for i in range(ws)]
+    names += ["z" + str(i) for i in range(ws)]
+    names += ["t" + str(i) for i in range(ws)]
+    bpr_pmodadd = BooleanPolynomialRing(names=names, order="deglex")
 
     # bpr_ext = BooleanPolynomialRing(names=bpr_pmodadd.variable_names()[:2*ws], order="deglex")
     # identity_anf = bpr_pmodadd.gens()
@@ -324,7 +323,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated graph automorphisms")
 
-    implicit_round_encodings, explicit_extin_function, explicit_extout_function = get_implicit_round_encodings(ws, rounds)
+    implicit_round_encodings, explicit_extin_function, explicit_extout_function = get_implicit_affine_round_encodings(ws, rounds)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
