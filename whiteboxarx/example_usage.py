@@ -44,7 +44,7 @@ if __name__ == '__main__':
         USE_REDUNDANT_PERTURBATIONS, PRINT_TIME_GENERATION, TRIVIAL_EE, PRINT_INTERMEDIATE_VALUES
     )
 
-    encoding_degree = 1
+    implicit_round_function_degree = 2  # 2, 3, 4
 
     export_to_C = False
     if export_to_C:
@@ -66,12 +66,15 @@ if __name__ == '__main__':
 
     # ----- generation of white-box implementation -----
 
-    if encoding_degree == 1:
+    if implicit_round_function_degree == 2:
+        # affine encodings
         get_encoded_implicit_round_funcions = implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions
-    elif encoding_degree == 2:
+    elif implicit_round_function_degree in [3, 4]:
+        # quadratic encodings
+        assert (implicit_round_function_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_MODE
         get_encoded_implicit_round_funcions = implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions
     else:
-        raise ValueError("invalid encoding_degree")
+        raise ValueError("invalid implicit_round_function_degree")
 
     encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
         get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
