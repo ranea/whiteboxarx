@@ -1,3 +1,5 @@
+import os
+
 from implicit_wb_with_affine_encodings import (
     get_encoded_implicit_round_funcions, get_eval_implicit_wb_implementation
 )
@@ -13,8 +15,8 @@ if __name__ == '__main__':
 
     # Speck initial parameters
     use_test_vector_key = True
-    speck_instance = speck.Speck_8_16
-    # speck_instance = speck.Speck_32_64
+    # speck_instance = speck.Speck_8_16
+    speck_instance = speck.Speck_32_64
     # speck_instance = speck.Speck_64_128
     # speck_instance = speck.Speck_128_256
 
