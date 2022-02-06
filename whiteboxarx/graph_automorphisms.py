@@ -155,7 +155,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
             break  # choose another subset_index
         else:
             if print_debug_generation:
-                smart_print(f"\t\tno GA found in subset {subset_index} after {num_samples} tries")
+                smart_print(f"\n\t\tno GA found in subset {subset_index} after {num_samples} tries")
             bad_subset_indices.append(subset_index)
             continue
 
