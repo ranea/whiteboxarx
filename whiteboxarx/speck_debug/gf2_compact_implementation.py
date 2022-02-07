@@ -31,8 +31,10 @@ def get_encryption(speck_instance, rounds, master_key):
     def gf2vector_to_bitvectors(v):
         return vector2int(v[:ws]), vector2int(v[ws:])
 
-    implicit_round_functions, bpr_pmodadd = get_unencoded_implicit_affine_layers(
+    implicit_round_functions = get_unencoded_implicit_affine_layers(
         speck_instance, rounds, master_key, return_implicit_round_functions=True)
+
+    bpr_pmodadd = implicit_round_functions[0][0].parent()
 
     ordered_replacement = []
     assert len(bpr_pmodadd.gens()) == 4*ws
