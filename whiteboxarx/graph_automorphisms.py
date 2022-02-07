@@ -85,6 +85,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
     while len(list_graph_automorphisms) < rounds:
         # 4 - Loop to obtain a GA for each round
 
+        assert len(bad_subset_indices) < len(list_extra_var2val)
         if len(bad_subset_indices) + len(good_subset_indices) >= len(list_extra_var2val):
             subset_index = good_subset_indices[sage.all.ZZ.random_element(0, len(good_subset_indices))]
         else:
