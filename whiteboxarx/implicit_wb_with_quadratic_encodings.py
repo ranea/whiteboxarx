@@ -25,14 +25,14 @@ from whiteboxarx.implicit_wb_with_affine_encodings import (
 
 TRIVIAL_QSE = False  # whether to use trivial quadratic encodings
 CUBIC_IRF = False  # if True, quadratic encodings and graph automorphisms are chosen such that the encoded implicit round functions are cubic and not quartic
+MAX_DEG_IRF = False  # whether to use ensure that the encoded implicit round functions have maximum degree (cubic if CUBIC_IRF else quartic)
 
 # ----
 
 sage.all.set_random_seed(SEED)
-assert not (TRIVIAL_GA is True and CUBIC_IRF is True)
 
 
-def get_explicit_affine_quadratic_se(wordsize, explicit_affine_layers, graph_automorphisms, filename):
+def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers, graph_automorphisms, filename):
     ws = wordsize
 
     if TRIVIAL_QSE is True:
@@ -58,9 +58,10 @@ def get_explicit_affine_quadratic_se(wordsize, explicit_affine_layers, graph_aut
 
         return list_aq_se, trivial_foo, trivial_foo
     else:
-        from quadratic_self_equivalences import get_explicit_affine_quadratic_se as geaq
-        return geaq(wordsize, explicit_affine_layers, graph_automorphisms, use_external_encodings=not TRIVIAL_EE,
-                    verbose=PRINT_DEBUG_GENERATION, filename=filename)
+        from quadratic_self_equivalences import get_explicit_affine_quadratic_se_encodings as geaqse
+        return geaqse(wordsize, explicit_affine_layers, graph_automorphisms,
+                      use_external_encodings=not TRIVIAL_EE, use_cubic_irf=CUBIC_IRF, ensure_max_degree=MAX_DEG_IRF,
+                      verbose=PRINT_DEBUG_GENERATION, filename=filename)
 
 
 def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explicit_affine_layers, filename):
@@ -92,8 +93,8 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated graph automorphisms")
 
-    explicit_affine_quadratic_se, explicit_affine_quadraticextin_function, explicit_affine_quadratic_extout_function = \
-        get_explicit_affine_quadratic_se(ws, explicit_affine_layers, graph_automorphisms, filename)
+    explicit_affine_quadratic_se_encodings, explicit_affine_quadratic_extin_function, explicit_affine_quadratic_extout_function = \
+        get_explicit_affine_quadratic_se_encodings(ws, explicit_affine_layers, graph_automorphisms, filename)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated affine-quadratic self-equivalences")
@@ -101,7 +102,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
     implicit_affine_round_encodings, explicit_affine_extin_function, explicit_affine_extout_function = get_implicit_affine_round_encodings(ws, rounds)
 
     def explicit_extin_function(v):
-        v = explicit_affine_quadraticextin_function(v)
+        v = explicit_affine_quadratic_extin_function(v)
         return explicit_affine_extin_function(v)
 
     def explicit_extout_function(v):
@@ -128,7 +129,7 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
         anf = compose_anf_fast(implicit_pmodadd, graph_automorphisms[i])
         anf = compose_anf_fast(anf, implicit_affine_layers[i])
         #
-        aq_layer = tuple(explicit_affine_quadratic_se[i]) + bpr_pmodadd.gens()[2*ws:4*ws]
+        aq_layer = tuple(bpr_pmodadd(str(f)) for f in explicit_affine_quadratic_se_encodings[i]) + bpr_pmodadd.gens()[2*ws:4*ws]
         anf = compose_anf_fast(anf, aq_layer)
         #
         anf = compose_anf_fast(anf, implicit_affine_round_encodings[i])
@@ -138,6 +139,8 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
         degs = [f.degree() for f in anf]
         if TRIVIAL_QSE is True or (i == 0 and TRIVIAL_EE):
             assert max(degs) == 2
+        elif MAX_DEG_IRF is False:
+            assert max(degs) >= 3
         else:
             assert max(degs) == (3 if CUBIC_IRF else 4), f"{degs}"
         list_degs.append(degs)
