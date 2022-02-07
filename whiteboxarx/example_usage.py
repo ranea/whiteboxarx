@@ -71,12 +71,14 @@ if __name__ == '__main__':
     if irf_degree == 2:
         # affine encodings
         encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
-            implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, filename=filename_debug)
+            implicit_wb_with_affine_encodings.get_encoded_implicit_round_funcions(
+                ws, unencoded_implicit_affine_layers, filename=filename_debug)
     elif irf_degree in [3, 4]:
         # quadratic encodings
         assert (irf_degree == 3) == implicit_wb_with_quadratic_encodings.CUBIC_IRF
         encoded_implicit_round_functions, explicit_extin_function, explicit_extout_function = \
-            implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions(ws, unencoded_implicit_affine_layers, explicit_affine_layers=unencoded_explicit_affine_layers, filename=filename_debug)
+            implicit_wb_with_quadratic_encodings.get_encoded_implicit_round_funcions(
+                ws, unencoded_implicit_affine_layers, explicit_affine_layers=unencoded_explicit_affine_layers, filename=filename_debug)
     else:
         raise ValueError("invalid irf_degree")
 
@@ -95,7 +97,9 @@ if __name__ == '__main__':
             speck_instance, PRINT_INTERMEDIATE_VALUES, filename=filename_debug)
 
         if not use_test_vector_key:
-            # explicit_*_function cancel the input/output external encodings (to get same output as unencoded test vectors)
+            # explicit_*_function cancel the input/output external encodings
+            # they are only meant to be used when `encoded_implicit_round_functions`
+            # contains external encodings and one want to test the (unencoded) test vectors
             explicit_extin_function = None
             explicit_extout_function = None
 

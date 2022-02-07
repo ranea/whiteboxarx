@@ -23,7 +23,7 @@ from whiteboxarx.implicit_wb_with_affine_encodings import (
 
 # -- Script parameters --
 
-TRIVIAL_QSE = True  # whether to use trivial quadratic encodings
+TRIVIAL_QSE = False  # whether to use trivial quadratic encodings
 CUBIC_IRF = False  # if True, quadratic encodings and graph automorphisms are chosen such that the encoded implicit round functions are cubic and not quartic
 
 # ----
@@ -59,7 +59,8 @@ def get_explicit_affine_quadratic_se(wordsize, explicit_affine_layers, graph_aut
         return list_aq_se, trivial_foo, trivial_foo
     else:
         from quadratic_self_equivalences import get_explicit_affine_quadratic_se as geaq
-        return geaq(wordsize, explicit_affine_layers, graph_automorphisms, filename, TRIVIAL_EE, PRINT_DEBUG_GENERATION)
+        return geaq(wordsize, explicit_affine_layers, graph_automorphisms, use_external_encodings=not TRIVIAL_EE,
+                    verbose=PRINT_DEBUG_GENERATION, filename=filename)
 
 
 def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explicit_affine_layers, filename):
