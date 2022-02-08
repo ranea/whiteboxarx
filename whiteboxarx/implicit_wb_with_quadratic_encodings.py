@@ -106,8 +106,8 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
         return explicit_affine_extin_function(v)
 
     def explicit_extout_function(v):
-        v = explicit_affine_quadratic_extout_function(v)
-        return explicit_affine_extout_function(v)
+        v = explicit_affine_extout_function(v)
+        return explicit_affine_quadratic_extout_function(v)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
