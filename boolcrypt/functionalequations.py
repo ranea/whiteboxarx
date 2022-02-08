@@ -594,9 +594,9 @@ def solve_functional_equation(
 
     This methods requires the CryptoMiniSat package to be installed in SageMath.
 
-    The left hand side F(x) = ...F1(F0(x) is given a list of ANF [F0, F1, ...],
+    The left hand side F(x) = ...F1(F0(x)) is given a list of ANF [F0, F1, ...],
     where some of them can be symbolic ANFs.
-    The right hand side G(x) = ...G1(G0(x) can be given similarly [G0, G1, ...],
+    The right hand side G(x) = ...G1(G0(x)) can be given similarly [G0, G1, ...],
     or it can be given a list of integers [d0, d1, ..., dd].
     In the latter case, the problem changes to find F that only have
     monomials with degrees [d0, d1, ..., dd].
@@ -1603,8 +1603,8 @@ def solve_functional_equation(
 
 
 def find_inverse(
-    anf, inv_degree, inv_position="left", input_vars=None, prefix_inv_coeffs="a",
-    verbose=False, debug=False, filename=None, **solve_args
+    anf, inv_degree, inv_position="left",  # input_vars=None,
+    prefix_inv_coeffs="a", verbose=False, debug=False, filename=None, **solve_args
 ):
     """Find the inverse of an ANF by calling solve_functional_equation().
 
@@ -1612,19 +1612,20 @@ def find_inverse(
     If inv_position="right",  find A' s.t. F(A) = Identity.
     If no inverse is found, None returned.
 
-    input_vars is a list of the inputs vars (containing Boolean variables
-    or strings) of the given anf (not needed for non-symbolic anf).
+    This method does not support symbolic ANF, and the input function F
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n,'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and the ANF of the inverse is returned.
 
         >>> sage.all.set_random_seed(0)
         >>> from boolcrypt.utilities import lut2anf, matrix2anf, compose_anf_fast
         >>> anf = lut2anf((0, 1, 2, 3, 4, 6, 7, 5))
         >>> inv_anf = find_inverse(anf, 2)
-        >>> get_anf_coeffmatrix_str(inv_anf, input_vars=["x0", "x1", "x2"])
+        >>> get_anf_coeffmatrix_str(inv_anf)  # , input_vars=["x0", "x1", "x2"])
         [x0*x2 x1*x2|   x0    x1    x2]
         [-----------+-----------------]
         [    0     1|    1     0     0]
@@ -1651,22 +1652,40 @@ def find_inverse(
         [1 0 0]
         [0 1 0]
 
+    .. Implementation details:
+
+        The list of the inputs vars (containing Boolean variables
+        or strings) of the given anf (not needed for non-symbolic anf)
+        is not given since this method only supports non-symbolic ANF.
+
     """
     assert inv_position in ["left", "right"]
     assert not isinstance(anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    # TODO: v2 add support for other bpr (in similar methods too)
 
-    # bpr = solve_args.get("bpr", None)
-    # initial_fixed_vars = solve_args.get("initial_fixed_vars", {})
-    # initial_fixed_vars = collections.OrderedDict(
-    #     [(k, v) for k, v in initial_fixed_vars.items() if str(k).startswith(prefix_inv_coeffs)])
+    # # deprecated
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    # # bpr = solve_args.get("bpr", None)
+    # # initial_fixed_vars = solve_args.get("initial_fixed_vars", {})
+    # # initial_fixed_vars = collections.OrderedDict(
+    # #     [(k, v) for k, v in initial_fixed_vars.items() if str(k).startswith(prefix_inv_coeffs)])
+    # if input_vars is None:
+    #     aux_bpr = anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in anf)
+    #     input_vars = list(aux_bpr.gens())
 
-    if input_vars is None:
-        aux_bpr = anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in anf)
-        input_vars = list(aux_bpr.gens())
+    input_vars = anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(len(input_vars), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {anf[0].parent()})")
 
     assert all(not str(v).startswith(prefix_inv_coeffs) for v in input_vars)
     assert not prefix_inv_coeffs.startswith("x")
@@ -1732,7 +1751,8 @@ def find_inverse(
 # TODO: add to docstring add_invertibility_equations (needed if left or right are NOT permutations)
 def find_equivalence(
     left_anf, right_anf, left_equiv_degree=1, right_equiv_degree=1,
-    equiv_ct_terms=True, left_input_vars=None, right_input_vars=None,
+    equiv_ct_terms=True,
+    # left_input_vars=None, right_input_vars=None,
     prefix_left_equiv_coeffs="b", prefix_right_equiv_coeffs="a",
     add_invertibility_equations=False,
     verbose=False, debug=False, filename=None, **solve_args
@@ -1750,13 +1770,13 @@ def find_equivalence(
 
     The pair (A, B) is found by solving the functional equation B F A = G.
 
-    left_input_vars and right_input_vars are two lists with the inputs vars
-    (containing Boolean variables or strings) of the given F and G
-    (not needed for non-symbolic anfs).
+    This method does not support symbolic ANF, and the input functions F and G
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n, 'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and a pair containing the ANF of A and B is returned.
 
         >>> from boolcrypt.utilities import lut2anf, get_lut_inversion
@@ -1794,29 +1814,53 @@ def find_equivalence(
         [    0     1|    1     0     1]
         [    1     0|    1     1     1]
 
+    .. Implementation details:
+
+        The two lists with the inputs vars
+        (containing Boolean variables or strings) of the given F and G
+        (not needed for non-symbolic anfs)
+        is not given since this method only supports non-symbolic ANF.
+
     """
     assert not isinstance(left_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
     assert not isinstance(right_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
     assert add_invertibility_equations in [False, "right", "left", "both"]
 
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    # # deprecated
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # # bpr = solve_args.get("bpr", None)
+    # # initial_fixed_vars = solve_args.get("initial_fixed_vars", {})
+    # # initial_fixed_vars = collections.OrderedDict(
+    # #     [(k, v) for k, v in initial_fixed_vars.items() if str(k).startswith(prefix_left_equiv_coeffs) or
+    # #      str(k).startswith(prefix_right_equiv_coeffs)])
+    #
+    # if left_input_vars is None:
+    #     aux_bpr = left_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in left_anf)
+    #     left_input_vars = aux_bpr.gens()
+    # if right_input_vars is None:
+    #     aux_bpr = right_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in right_anf)
+    #     right_input_vars = aux_bpr.gens()
 
-    # bpr = solve_args.get("bpr", None)
-    # initial_fixed_vars = solve_args.get("initial_fixed_vars", {})
-    # initial_fixed_vars = collections.OrderedDict(
-    #     [(k, v) for k, v in initial_fixed_vars.items() if str(k).startswith(prefix_left_equiv_coeffs) or
-    #      str(k).startswith(prefix_right_equiv_coeffs)])
+    left_input_vars = left_anf[0].parent().gens()
+    right_input_vars = right_anf[0].parent().gens()
 
-    if left_input_vars is None:
-        aux_bpr = left_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in left_anf)
-        left_input_vars = aux_bpr.gens()
-    if right_input_vars is None:
-        aux_bpr = right_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in right_anf)
-        right_input_vars = aux_bpr.gens()
+    bpr_x = BooleanPolynomialRing(max(len(left_input_vars), len(right_input_vars)), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(left_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {left_anf[0].parent()})")
+    for i, v in enumerate(right_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {right_anf[0].parent()})")
 
     for v in itertools.chain(left_input_vars, right_input_vars):
         assert not str(v).startswith(prefix_left_equiv_coeffs)
@@ -1887,7 +1931,8 @@ def find_equivalence(
 
 # TODO: add to docstring add_invertibility_equations
 def find_half_affine_equivalence(
-    left_anf, inv_right_anf, left_input_vars=None, inv_right_input_vars=None,
+    left_anf, inv_right_anf,
+    # left_input_vars=None, inv_right_input_vars=None,
     prefix_equiv_coeffs="a", add_invertibility_equations=True,
     verbose=False, debug=False, filename=None, **solve_args
 ):
@@ -1899,15 +1944,13 @@ def find_half_affine_equivalence(
     In particular, if F = G, A is a right affine self-equivalence of F.
     If no solution is found, None is returned.
 
-    left_input_vars and inv_right_input_vars are 2 lists of the inputs vars
-    (containing Boolean variables or strings) of the given F and G^{-1}
-    (not needed for non-symbolic anfs).
-
-    Named arguments from **solve_args are passed to solve_functional_equation().
+    This method does not support symbolic ANF, and the input functions F and G
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n, 'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and the ANF of A is returned.
 
         >>> sage.all.set_random_seed(0)
@@ -1934,21 +1977,44 @@ def find_half_affine_equivalence(
         [ 1  0  0]
         [ 0  0  1]
 
+    .. Implementation details:
+
+        The two lists with the inputs vars
+        (containing Boolean variables or strings) of the given F and G
+        (not needed for non-symbolic anfs)
+        is not given since this method only supports non-symbolic ANF.
+
     """
     assert not isinstance(left_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
     assert not isinstance(inv_right_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # if left_input_vars is None:
+    #     aux_bpr = left_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in left_anf)
+    #     left_input_vars = aux_bpr.gens()
+    # if inv_right_input_vars is None:
+    #     aux_bpr = inv_right_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in inv_right_anf)
+    #     inv_right_input_vars = aux_bpr.gens()
 
-    if left_input_vars is None:
-        aux_bpr = left_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in left_anf)
-        left_input_vars = aux_bpr.gens()
-    if inv_right_input_vars is None:
-        aux_bpr = inv_right_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in inv_right_anf)
-        inv_right_input_vars = aux_bpr.gens()
+    left_input_vars = left_anf[0].parent().gens()
+    inv_right_input_vars = inv_right_anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(max(len(left_input_vars), len(inv_right_input_vars)), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(left_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {left_anf[0].parent()})")
+    for i, v in enumerate(inv_right_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {inv_right_anf[0].parent()})")
 
     for v in left_input_vars + inv_right_input_vars:
         assert not str(v).startswith(prefix_equiv_coeffs)
@@ -2005,7 +2071,8 @@ def find_half_affine_equivalence(
 
 
 def find_nondiagonal_ase(
-    left_anf, right_anf, se_ct_terms=True, left_input_vars=None, right_input_vars=None,
+    left_anf, right_anf, se_ct_terms=True,
+    # left_input_vars=None, right_input_vars=None,
     prefix_se_left_coeffs="b", prefix_se_right_coeffs="a",
     verbose=False, debug=False, filename=None, **solve_args
 ):
@@ -2019,13 +2086,13 @@ def find_nondiagonal_ase(
 
     If se_ct_terms=False, the constant terms of A and B are set to zero.
 
-    left_input_vars and right_input_vars are two lists containing the
-    inputs vars (Boolean variables or strings) of the given
-    left and right anfs (not needed for non-symbolic anfs).
+    This method does not support symbolic ANF, and the input functions F and G
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n, 'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and a pair with the ANF of A and B is returned.
 
         >>> sage.all.set_random_seed(0)
@@ -2050,21 +2117,44 @@ def find_nondiagonal_ase(
         >>> find_nondiagonal_ase(left_anf, right_anf, se_ct_terms=False)  # doctest:+SKIP
         No solution found (system of equations is inconsistent (unsatisfiable))
 
+    .. Implementation details:
+
+        The two lists with the inputs vars
+        (containing Boolean variables or strings) of the given F and G
+        (not needed for non-symbolic anfs)
+        is not given since this method only supports non-symbolic ANF.
+
     """
     assert not isinstance(left_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
     assert not isinstance(right_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # if left_input_vars is None:
+    #     aux_bpr = left_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in left_anf)
+    #     left_input_vars = aux_bpr.gens()
+    # if right_input_vars is None:
+    #     aux_bpr = right_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in right_anf)
+    #     right_input_vars = aux_bpr.gens()
 
-    if left_input_vars is None:
-        aux_bpr = left_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in left_anf)
-        left_input_vars = aux_bpr.gens()
-    if right_input_vars is None:
-        aux_bpr = right_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in right_anf)
-        right_input_vars = aux_bpr.gens()
+    left_input_vars = left_anf[0].parent().gens()
+    right_input_vars = right_anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(max(len(left_input_vars), len(right_input_vars)), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(left_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {left_anf[0].parent()})")
+    for i, v in enumerate(right_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {right_anf[0].parent()})")
 
     assert all(not str(v).startswith(prefix_se_left_coeffs) for v in left_input_vars + right_input_vars)
     assert all(not str(v).startswith(prefix_se_right_coeffs) for v in left_input_vars + right_input_vars)
@@ -2105,7 +2195,7 @@ def find_nondiagonal_ase(
 
     return find_equivalence(
         anf, anf, left_equiv_degree=1, right_equiv_degree=1, equiv_ct_terms=se_ct_terms,
-        left_input_vars=input_anf_vars, right_input_vars=input_anf_vars,
+        # left_input_vars=input_anf_vars, right_input_vars=input_anf_vars,
         prefix_left_equiv_coeffs=prefix_se_left_coeffs,
         prefix_right_equiv_coeffs=prefix_se_right_coeffs,
         verbose=verbose, debug=debug, filename=filename,
@@ -2114,7 +2204,7 @@ def find_nondiagonal_ase(
 
 
 def find_noninvertible_ase(
-    anf, se_ct_terms=True, input_anf_vars=None,
+    anf, se_ct_terms=True, # input_anf_vars=None,
     prefix_left_se_coeffs="b", prefix_right_se_coeffs="a",
     verbose=False, debug=False, filename=None, **solve_args
 ):
@@ -2127,12 +2217,13 @@ def find_noninvertible_ase(
 
     If se_ct_terms=False, the constant terms of A and B are set to zero.
 
-    input_anf_vars is a list of the inputs vars (containing Boolean variables
-    or strings) of the given anf (not needed for non-symbolic anfs).
+    This method does not support symbolic ANF, and the input function F
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n,'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and a pair containing the ANF of A and B is returned.
 
         >>> from boolcrypt.utilities import lut2anf, get_lut_inversion
@@ -2154,16 +2245,33 @@ def find_noninvertible_ase(
         >>> find_noninvertible_ase(lut2anf(get_lut_inversion(3)))
         No solution found (system of equations is inconsistent (unsatisfiable))
 
+    .. Implementation details:
+
+        The list of the inputs vars (containing Boolean variables
+        or strings) of the given anf (not needed for non-symbolic anf)
+        is not given since this method only supports non-symbolic ANF.
+
     """
     assert not isinstance(anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # if input_anf_vars is None:
+    #     aux_bpr = anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in anf)
+    #     input_anf_vars = aux_bpr.gens()
 
-    if input_anf_vars is None:
-        aux_bpr = anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in anf)
-        input_anf_vars = aux_bpr.gens()
+    input_anf_vars = anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(len(input_anf_vars), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(input_anf_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {anf[0].parent()})")
 
     assert all(not str(v).startswith(prefix_right_se_coeffs) for v in input_anf_vars)
     assert all(not str(v).startswith(prefix_left_se_coeffs) for v in input_anf_vars)
@@ -2225,7 +2333,8 @@ def find_noninvertible_ase(
 
 
 def find_horizontal_decomposition(
-    anf, degree_anf, num_inputs_first_factor, aff_ct_terms=True, input_anf_vars=None,
+    anf, degree_anf, num_inputs_first_factor, aff_ct_terms=True,
+    # input_anf_vars=None,
     prefix_left_aff_coeffs="b", prefix_right_aff_coeffs="a",
     prefix_first_factor="p", prefix_second_factor="q",
     verbose=False, debug=False, filename=None, **solve_args
@@ -2242,12 +2351,13 @@ def find_horizontal_decomposition(
 
     If aff_ct_terms=False, finds A and B linear instead of affine.
 
-    input_anf_vars is a list of the inputs vars (containing Boolean variables
-    or strings) of the given anf G (not needed for non-symbolic anfs).
+    This method does not support symbolic ANF, and the input function G
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n,'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     abd the triple ((P, Q), A, B), each one in ANF form, is returned.
 
         >>> sage.all.set_random_seed(0)
@@ -2280,14 +2390,33 @@ def find_horizontal_decomposition(
         >>> find_horizontal_decomposition(anf, 2, 1)  # non-linear 3b cannot be decomposed
         No solution found (system of equations is inconsistent (unsatisfiable))
 
-    """
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    .. Implementation details:
 
-    if input_anf_vars is None:
-        aux_bpr = anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in anf)
-        input_anf_vars = aux_bpr.gens()
+        The list of the inputs vars (containing Boolean variables
+        or strings) of the given anf G (not needed for non-symbolic anfs).
+        is not given since this method only supports non-symbolic ANF.
+
+    """
+    assert not isinstance(anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
+
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # if input_anf_vars is None:
+    #     aux_bpr = anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in anf)
+    #     input_anf_vars = aux_bpr.gens()
+
+    input_anf_vars = anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(len(input_anf_vars), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(input_anf_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {anf[0].parent()})")
 
     num_p_vars = num_inputs_first_factor
 
@@ -2302,25 +2431,89 @@ def find_horizontal_decomposition(
     )
     input_concat_vars = ["x" + str(i) for i in range(len(input_anf_vars))]
 
-    simplify_output = "return_mode" not in solve_args and "num_sat_solutions" not in solve_args
-    if "return_mode" not in solve_args:
-        # force full output in result
-        solve_args["return_mode"] = "list_anfs"
+    # simplify_output = "return_mode" not in solve_args and "num_sat_solutions" not in solve_args
+    # if "return_mode" not in solve_args:
+    #     # force full output in result
+    #     solve_args["return_mode"] = "list_anfs"
+    #
+    # result = find_equivalence(
+    #     concat_anf, anf, left_equiv_degree=1, right_equiv_degree=1, equiv_ct_terms=aff_ct_terms,
+    #     # left_input_vars=input_concat_vars, right_input_vars=input_anf_vars,
+    #     prefix_left_equiv_coeffs=prefix_left_aff_coeffs,
+    #     prefix_right_equiv_coeffs=prefix_right_aff_coeffs,
+    #     verbose=verbose, debug=debug, filename=filename, **solve_args
+    # )
+    #
+    # if result and simplify_output:
+    #     if solve_args.get("return_total_num_solutions", False):
+    #         get_smart_print(filename)("ignoring return_total_num_solutions")
+    #     return result[0][0][1], result[0][0][0], result[0][0][2]  # return f1, f0, f2
+    # else:
+    #     return result
 
-    result = find_equivalence(
-        concat_anf, anf, left_equiv_degree=1, right_equiv_degree=1, equiv_ct_terms=aff_ct_terms,
-        left_input_vars=input_concat_vars, right_input_vars=input_anf_vars,
-        prefix_left_equiv_coeffs=prefix_left_aff_coeffs,
-        prefix_right_equiv_coeffs=prefix_right_aff_coeffs,
-        verbose=verbose, debug=debug, filename=filename, **solve_args
-    )
+    # duplicated code from find_equivalence since find_equivalence
+    # does not support symbolic ANF (like concat_anf)
+    left_anf = concat_anf
+    right_anf = anf
+    left_equiv_degree = 1
+    right_equiv_degree = 1
+    left_input_vars = input_concat_vars
+    right_input_vars = input_anf_vars
+    equiv_ct_terms = aff_ct_terms
+    prefix_left_equiv_coeffs = prefix_left_aff_coeffs
+    prefix_right_equiv_coeffs = prefix_right_aff_coeffs
 
-    if result and simplify_output:
-        if solve_args.get("return_total_num_solutions", False):
-            get_smart_print(filename)("ignoring return_total_num_solutions")
-        return result[0][0][1], result[0][0][0], result[0][0][2]  # return f1, f0, f21
+    for v in itertools.chain(left_input_vars, right_input_vars):
+        assert not str(v).startswith(prefix_left_equiv_coeffs)
+        assert not str(v).startswith(prefix_right_equiv_coeffs)
+    assert not prefix_left_equiv_coeffs.startswith("x")
+    assert not prefix_right_equiv_coeffs.startswith("x")
+
+    f2 = get_symbolic_anf(left_equiv_degree, len(left_anf), len(right_anf), ct_terms=equiv_ct_terms,
+                          prefix_inputs="x", prefix_coeffs=prefix_left_equiv_coeffs)
+                          # bpr=bpr, coeff2expr=initial_fixed_vars)
+    f1 = left_anf
+    f0 = get_symbolic_anf(right_equiv_degree, len(right_input_vars), len(left_input_vars), ct_terms=equiv_ct_terms,
+                          prefix_inputs="x", prefix_coeffs=prefix_right_equiv_coeffs)
+                          # bpr=bpr, coeff2expr=initial_fixed_vars)
+    f2_input_vars = ["x" + str(i) for i in range(len(left_anf))]
+    f1_input_vars = left_input_vars
+    f0_input_vars = ["x" + str(i) for i in range(len(right_input_vars))]
+
+    # if bpr is not None:
+    #     f2_input_vars = [bpr(v) for v in f2_input_vars]
+    #     f0_input_vars = [bpr(v) for v in f0_input_vars]
+
+    g0 = right_anf
+    g0_input_vars = right_input_vars
+
+    lhs_anfs = [f0, f1, f2]
+    lhs_input_vars = [f0_input_vars, f1_input_vars, f2_input_vars]
+
+    rhs_anfs = [g0]
+    rhs_input_vars = [g0_input_vars]
+
+    new_kwargs = solve_args.copy()
+    if "num_sat_solutions" not in new_kwargs:
+        new_kwargs["num_sat_solutions"] = 1
+    if "return_mode" not in new_kwargs:
+        new_kwargs["return_mode"] = "list_anfs"
+
+    try:
+        result = solve_functional_equation(
+            lhs_anfs, rhs_anfs, lhs_input_vars, rhs_input_vars,
+            verbose=verbose, debug=debug, filename=filename, **new_kwargs
+        )
+    except ValueError as e:
+        get_smart_print(filename)(f"No solution found ({e})")
+        return None
     else:
-        return result
+        if "return_mode" not in solve_args and "num_sat_solutions" not in solve_args:
+            if solve_args.get("return_total_num_solutions", False):
+                get_smart_print(filename)("ignoring return_total_num_solutions")
+            return result[0][0][1], result[0][0][0], result[0][0][2]  # return f1, f0, f2
+        else:
+            return result
 
 
 # TODO: v2 support right_anf to be in implicit form
@@ -2328,7 +2521,8 @@ def find_ccz_equivalence(
     left_anf, right_anf,
     equiv_degree=1, inv_equiv_degree=1, equiv_ct_terms=True,
     add_invertibility_equations=True,
-    left_input_vars=None, right_input_vars=None, prefix_am_coeffs="a",
+    # left_input_vars=None, right_input_vars=None,
+    prefix_am_coeffs="a",
     verbose=False, debug=False, filename=None, **solve_args
 ):
     """Find an affine A such that A(graph F) = graph G.
@@ -2355,13 +2549,13 @@ def find_ccz_equivalence(
     In this case, if equiv_degree>1, the inv_equiv_degree is used to
     build the invertibility equations.
 
-    left_input_vars and right_input_vars are two lists with the inputs vars
-    (containing Boolean variables or strings) of the given F and G
-    (not needed for non-symbolic anfs).
+    This method does not support symbolic ANF, and the input functions F and G
+    must be defined in the boolean polynomial ring
+    BooleanPolynomialRing(n, 'x') with n the number of input variables.
 
     Named arguments from **solve_args are passed to solve_functional_equation().
     By default, return_mode="list_anfs" and num_sat_solutions="1".
-    If there two parameters are not given, only one solution is found
+    If these two parameters are not given, only one solution is found
     and the ANF of A is returned.
 
         >>> sage.all.set_random_seed(0)
@@ -2397,10 +2591,14 @@ def find_ccz_equivalence(
         [ 0  0  0  0  1  0  1  0]
         [ 0  0  1  0  1  0  1  1]
 
-    """
-    if solve_args.get("bpr", None) is not None:
-        assert solve_args.get("ignore_initial_parsing", False) is not True
+    .. Implementation details:
 
+        The two lists with the inputs vars
+        (containing Boolean variables or strings) of the given F and G
+        (not needed for non-symbolic anfs)
+        is not given since this method only supports non-symbolic ANF.
+
+    """
     # The original equation is with the inverse, that is,
     # if B^{-1} = (b_0, b_1) verifies b_1(u, F(u)) = G(b_0(u, F(u))),
     # then Gamma_F = B(Gamma_G).
@@ -2411,14 +2609,33 @@ def find_ccz_equivalence(
     assert not isinstance(left_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
     assert not isinstance(right_anf, sage.rings.polynomial.pbori.pbori.BooleanPolynomial)
 
-    if left_input_vars is None:
-        aux_bpr = left_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in left_anf)
-        left_input_vars = aux_bpr.gens()
-    if right_input_vars is None:
-        aux_bpr = right_anf[0].parent()
-        assert all(aux_bpr == f.parent() for f in right_anf)
-        right_input_vars = aux_bpr.gens()
+    # if solve_args.get("bpr", None) is not None:
+    #     assert solve_args.get("ignore_initial_parsing", False) is not True
+    #
+    # if left_input_vars is None:
+    #     aux_bpr = left_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in left_anf)
+    #     left_input_vars = aux_bpr.gens()
+    # if right_input_vars is None:
+    #     aux_bpr = right_anf[0].parent()
+    #     assert all(aux_bpr == f.parent() for f in right_anf)
+    #     right_input_vars = aux_bpr.gens()
+
+    left_input_vars = left_anf[0].parent().gens()
+    right_input_vars = right_anf[0].parent().gens()
+
+    bpr_x = BooleanPolynomialRing(max(len(left_input_vars), len(right_input_vars)), 'x')
+    if solve_args.get("bpr", bpr_x) != bpr_x:
+        raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                  f"(and not {solve_args['bpr']})")
+    for i, v in enumerate(left_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {left_anf[0].parent()})")
+    for i, v in enumerate(right_input_vars):
+        if v != bpr_x.gens()[i]:
+            raise NotImplementedError(f"only the boolean polynomial ring {bpr_x} is supported "
+                                      f"(and not {right_anf[0].parent()})")
 
     assert all(not str(v).startswith(prefix_am_coeffs)
                for v in left_input_vars + right_input_vars)
