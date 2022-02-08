@@ -404,7 +404,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 inv_B_iprev_xx = find_inverse(
                     B_iprev_xx, inv_deg, inv_position="left",
                     reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
-                    verbose=True, debug=False, filename=None,
+                    verbose=False, debug=False, filename=None,
                 )
                 found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
                 if verbose:
