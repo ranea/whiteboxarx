@@ -1,11 +1,11 @@
-"""Get a list of quadratic-affine self-equivalences from stored_qase_pmodadd_w*.sobj.
+"""Get a list of affine-quadratic self-equivalences from stored_qase_pmodadd_w*.sobj.
 
 The file data/stored_qase_pmodadd_w*.sobj contains a set of
-quadratic-affine self-equivalences (given as a list of equations)
+affine-quadratic self-equivalences (given as a list of equations)
 of the permuted modular addition for the wordsize w*-.
 
 WARNING: stored_qase_pmodadd_w*.sobj does not contain all
-quadratic-affine self-equivalences.
+affine-quadratic self-equivalences.
 
 To get random self-equivalences from stored_qase_pmodadd_w*.sobj,
 first a number of solutions (MAX_SUBSET_SOLUTIONS*NUM_ROUNDS)
@@ -35,8 +35,8 @@ from boolcrypt.modularaddition import get_implicit_modadd_anf
 from boolcrypt.se_pmodadd.find_quadraticaffine_se import graph_qase_coeffs2modadd_qase_anf
 
 
-# TODO: add warning that for round 0, B_{i-1} is chosen as a QSE instead of a random quadratic permutation
-# TODO: choose number of solutions and MAX_SAMPLES_PER_SE_SUBSET
+# TODO: choose number of solutions and MAX_SAMPLES_PER_SE_SUBSET empirically
+# TODO: test finding inverse for w64
 
 
 MAX_SUBSET_SOLUTIONS = 128
@@ -248,10 +248,10 @@ def get_explicit_affine_quadratic_se_encodings(
         if index_round == 0 and not use_external_encodings:
             # B_{i-1} is the identity
             B_iprev = bpr_xy.gens()
-            aq_encoding = compose_anf_fast(invALi_Ai_ALi, B_iprev)
-            assert aq_encoding[0].parent() == bpr_xy
-            assert len(aq_encoding) == 2 * ws
-            list_explicit_affinequadratic_encodings[index_round] = aq_encoding
+            affine_quadratic_encoding = compose_anf_fast(invALi_Ai_ALi, B_iprev)
+            assert affine_quadratic_encoding[0].parent() == bpr_xy
+            assert len(affine_quadratic_encoding) == 2 * ws
+            list_explicit_affinequadratic_encodings[index_round] = affine_quadratic_encoding
 
             def explicit_affine_quadratic_extin_function(v):
                 return v
@@ -373,12 +373,12 @@ def get_explicit_affine_quadratic_se_encodings(
 
         # ----- Store the affine-quadratic encoding (AL_i^{-1} A_i AL_i) \circ B_{i-1} -----
 
-        aq_encoding = compose_anf_fast(invALi_Ai_ALi, B_iprev)
-        assert aq_encoding[0].parent() == bpr_xy
-        assert len(aq_encoding) == 2 * ws
-        assert any(f.degree() >= 2 for f in aq_encoding), f"{[f.degree() for f in aq_encoding]}"
+        affine_quadratic_encoding = compose_anf_fast(invALi_Ai_ALi, B_iprev)
+        assert affine_quadratic_encoding[0].parent() == bpr_xy
+        assert len(affine_quadratic_encoding) == 2 * ws
+        assert any(f.degree() >= 2 for f in affine_quadratic_encoding), f"{[f.degree() for f in affine_quadratic_encoding]}"
 
-        list_explicit_affinequadratic_encodings[index_round] = aq_encoding
+        list_explicit_affinequadratic_encodings[index_round] = affine_quadratic_encoding
 
         solution_se_invAi_Bi = ordered_replacement_copy_copy  # for next round
 
@@ -387,7 +387,6 @@ def get_explicit_affine_quadratic_se_encodings(
         if index_round == 0 and use_external_encodings:
             # Building explicit_affine_quadratic_extin_function, auxiliary function
             # which cancels the the external input encoding B_{-1} (evaluates inverse of B_{-1})
-            # TODO: test finding inverse for w64
             from boolcrypt.functionalequations import find_inverse
 
             assert B_iprev[0].parent() == bpr_xy
@@ -405,7 +404,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 inv_B_iprev_xx = find_inverse(
                     B_iprev_xx, inv_deg, inv_position="left",
                     reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
-                    verbose=False, debug=False, filename=None,
+                    verbose=True, debug=False, filename=None,
                 )
                 found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
                 if verbose:
@@ -422,7 +421,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 return sage.all.vector(v[0].parent(), [f(*v) for f in inv_B_iprev])
 
     if wordsize <= 4:
-        for aq_encoding in list_explicit_affinequadratic_encodings:
-            assert is_balanced(aq_encoding)
+        for affine_quadratic_encoding in list_explicit_affinequadratic_encodings:
+            assert is_balanced(affine_quadratic_encoding)
 
     return list_explicit_affinequadratic_encodings, explicit_affine_quadratic_extin_function, explicit_affine_quadratic_extout_function
