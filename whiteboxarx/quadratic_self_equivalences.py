@@ -399,8 +399,7 @@ def get_explicit_affine_quadratic_se_encodings(
             B_iprev_xx = [bpr_xx(str(f.subs(replacements))) for f in B_iprev]
 
             if verbose:
-                smart_print(f"\tfinding inverse of right quadratic self-equivalence B_{{-1}} for "
-                            f"explicit_affine_quadratic_extin_function:")
+                smart_print(f"\tfinding inverse of right quadratic SE B_{{-1}} for external output encoding:")
 
             for inv_deg in range(2, min(len(B_iprev_xx), len(bpr_xx.gens()))):
                 inv_B_iprev_xx = find_inverse(
