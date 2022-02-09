@@ -385,40 +385,62 @@ def get_explicit_affine_quadratic_se_encodings(
         # ----- External encodings -----
 
         if index_round == 0 and use_external_encodings:
-            # Building explicit_affine_quadratic_extin_function, auxiliary function
-            # which cancels the the external input encoding B_{-1} (evaluates inverse of B_{-1})
-            from boolcrypt.functionalequations import find_inverse
+            # Building explicit_affine_quadratic_extin_function, an auxiliary function
+            # which cancels the external input encoding B_{-1}
+            # (by finding the input (x,y) such that v = B_{-1}(x, y) with v given)
 
             assert B_iprev[0].parent() == bpr_xy
 
-            bpr_xx = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)])
-            # intermediate_bpr_xxy contains both bpr_xx bpr_xy
-            intermediate_bpr_xxy = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)] + names_y)
-            replacements = {str(bpr_xy.gens()[ws + i]): intermediate_bpr_xxy.gens()[ws + i] for i in range(ws)}
-            B_iprev_xx = [bpr_xx(str(f.subs(replacements))) for f in B_iprev]
-
-            if verbose:
-                smart_print(f"\tfinding inverse of right quadratic SE B_{{-1}} for external output encoding:")
-
-            for inv_deg in range(2, min(len(B_iprev_xx), len(bpr_xx.gens()))):
-                inv_B_iprev_xx = find_inverse(
-                    B_iprev_xx, inv_deg, inv_position="left",
-                    reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
-                    verbose=False, debug=False, filename=None,
-                )
-                found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
-                if verbose:
-                    smart_print(f"\t\tinverse{' ' if found_inverse else ' not '}found with degree={inv_deg}")
-                if found_inverse:
-                    break
-            else:
-                raise ValueError("inverse of B_0 not found")
-
-            replacements = {str(bpr_xx.gens()[ws + i]): intermediate_bpr_xxy.gens()[2*ws + i] for i in range(ws)}
-            inv_B_iprev = [bpr_xy(str(f.subs(replacements))) for f in inv_B_iprev_xx]
-
             def explicit_affine_quadratic_extin_function(v):
-                return sage.all.vector(v[0].parent(), [f(*v) for f in inv_B_iprev])
+                preimage_equations = [bpr_xy(v[i]) + f(*bpr_xy.gens()) for i, f in enumerate(B_iprev)]
+
+                # if verbose:
+                #     smart_print(f"finding preimage of {v} = B_{{-1}}(...), with B_{{-1}} external input encoding")
+
+                solution_preimage = solve_sat(preimage_equations, n=1)
+                if solution_preimage is None or len(solution_preimage) == 0:
+                    raise ValueError('could not find the inverse of external input encoding B_{-1}')
+
+                new_v = [None for _ in range(len(v))]
+                strvar2index = lambda x: bpr_xy.variable_names().index(x)
+                for sol_var, sol_val in solution_preimage[0].items():
+                    new_v[strvar2index(str(sol_var))] = v[0].parent()(str(sol_val))
+
+                return sage.all.vector(v[0].parent(), new_v)
+
+            # # finding the inverse is not possible for ws › 4
+            # from boolcrypt.functionalequations import find_inverse
+            #
+            # assert B_iprev[0].parent() == bpr_xy
+            #
+            # bpr_xx = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)], order="deglex")
+            # # intermediate_bpr_xxy contains both bpr_xx bpr_xy
+            # intermediate_bpr_xxy = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)] + names_y, order="deglex")
+            # replacements = {str(bpr_xy.gens()[ws + i]): intermediate_bpr_xxy.gens()[ws + i] for i in range(ws)}
+            # B_iprev_xx = [bpr_xx(str(f.subs(replacements))) for f in B_iprev]
+            #
+            # if verbose:
+            #     smart_print(f"\tfinding inverse of right quadratic SE B_{{-1}} for external input encoding:")
+            #
+            # for inv_deg in range(2, min(len(B_iprev_xx), len(bpr_xx.gens()))):
+            #     inv_B_iprev_xx = find_inverse(
+            #         B_iprev_xx, inv_deg, inv_position="left",
+            #         reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
+            #         verbose=True, debug=False, filename=None,
+            #     )
+            #     found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
+            #     if verbose:
+            #         smart_print(f"\t\tinverse{' ' if found_inverse else ' not '}found with degree={inv_deg}")
+            #     if found_inverse:
+            #         break
+            # else:
+            #     raise ValueError("inverse of B_0 not found")
+            #
+            # replacements = {str(bpr_xx.gens()[ws + i]): intermediate_bpr_xxy.gens()[2*ws + i] for i in range(ws)}
+            # inv_B_iprev = [bpr_xy(str(f.subs(replacements))) for f in inv_B_iprev_xx]
+            #
+            # def explicit_affine_quadratic_extin_function(v):
+            #     return sage.all.vector(v[0].parent(), [f(*v) for f in inv_B_iprev])
 
     if wordsize <= 4:
         for affine_quadratic_encoding in list_explicit_affinequadratic_encodings:
