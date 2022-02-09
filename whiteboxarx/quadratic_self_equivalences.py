@@ -36,7 +36,6 @@ from boolcrypt.se_pmodadd.find_quadraticaffine_se import graph_qase_coeffs2modad
 
 
 # TODO: choose number of solutions and MAX_SAMPLES_PER_SE_SUBSET empirically
-# TODO: test finding inverse for w64
 
 
 MAX_SUBSET_SOLUTIONS = 128
@@ -150,6 +149,8 @@ def get_explicit_affine_quadratic_se_encodings(
             if my_anf is not None:
                 my_matrix = anf2matrix(my_anf, input_vars=names_xy)
                 my_ct = get_ct_coeff(my_anf, input_vars=names_xy)
+            if my_matrix.base_ring() != sage.all.GF(2):
+                my_matrix = my_matrix.change_ring(sage.all.GF(2))
             my_inv_matrix = my_matrix ** (-1)
             my_inv_ct = my_inv_matrix * sage.all.vector(bpr_xy, my_ct)
             return my_inv_matrix, my_inv_ct
@@ -395,7 +396,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 preimage_equations = [bpr_xy(v[i]) + f(*bpr_xy.gens()) for i, f in enumerate(B_iprev)]
 
                 # if verbose:
-                #     smart_print(f"finding preimage of {v} = B_{{-1}}(...), with B_{{-1}} external input encoding")
+                #     smart_print(f"finding preimage of {v} = B_{{-1}}(...), with B_{{-1}} quadratic part of external input encoding")
 
                 solution_preimage = solve_sat(preimage_equations, n=1)
                 if solution_preimage is None or len(solution_preimage) == 0:
