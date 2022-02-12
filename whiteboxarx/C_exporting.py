@@ -189,6 +189,7 @@ def export_implicit_functions_to_C(
     smart_print_C_array_header(f"#define WORD_IN_TYPE {WORD_IN_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_OUT_TYPE {WORD_OUT_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_CONSTANT_TYPE {WORD_CONSTANT_TYPE[ws]}")
+    smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {use_redundant_perturbations}")
 
     smart_print_C_array_header(f"#define MONOMIAL_WORD_TYPE uint8_t")
     smart_print_C_array_header(f"#define MONOMIAL_WORD_SIZE 8")
