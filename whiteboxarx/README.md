@@ -2,7 +2,7 @@
 * Python 3
 * [SageMath](https://www.sagemath.org/)
 * [cryptominisat](https://github.com/msoos/cryptominisat)
-* A C compiler (to compile exported C code)
+* A C compiler (e.g. [gcc](https://gcc.gnu.org/)) (to compile exported C code)
 * [m4ri](https://bitbucket.org/malb/m4ri) (to compile exported C code)
 
 # Usage
