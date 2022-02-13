@@ -59,9 +59,9 @@ if __name__ == '__main__':
     filename_c_array = None
 
     """
-    filename_debug = f"intermediate_values_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.txt"
-    filename_c_info = f"equations_info_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.txt"
-    filename_c_array = f"equations_{speck_instance.name.lower()}_irfdeg{degree}_{encoding_mode}.c"
+    filename_debug = f"intermediate_values_{speck_instance.name.lower()}_irfdeg{irf_degree}_{encoding_mode}.txt"
+    filename_c_info = f"equations_info_{speck_instance.name.lower()}_irfdeg{irf_degree}_{encoding_mode}.txt"
+    filename_c_array = f"equations_{speck_instance.name.lower()}_irfdeg{irf_degree}_{encoding_mode}.c"
     for fn in [filename_debug, filename_c_info, filename_c_array]:
         assert not os.path.isfile(fn), f"{fn} already exists"
     """
