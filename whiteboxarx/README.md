@@ -85,7 +85,7 @@ Crucially, `white_box_arx.c` includes the C backend file as follows:
 ```
 #include "white_box_backend.c"
 ```
-Make sure to update this `include` if the `export-file` parameter is changed from the default value.
+Make sure to update this `include` statement if the `export-file` parameter is changed from the default value.
 
 The `encoding-mode` parameter specifies how the round function data should be encoded in the exported C file. By default, this is done in binary mode, to minimize the size of the output file. However, other options are `hex` (encode in hexadecimal format) and `bin_zero` (encode in binary mode, but escape the null character). These other options might greatly increase the output size.
 
