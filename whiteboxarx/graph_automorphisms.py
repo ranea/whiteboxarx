@@ -147,7 +147,8 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
             # found valid GA
             if print_debug_generation:
                 smart_print(f"\n\t\tfound GA in subset {subset_index} after {index_sample} tries")
-            good_subset_indices.append(subset_index)
+            if subset_index not in good_subset_indices:
+                good_subset_indices.append(subset_index)
             list_graph_automorphisms.append(l_c_linv_i)
             if use_same_ga_for_all_rounds:
                 for _ in range(len(list_graph_automorphisms), rounds):
@@ -157,7 +158,8 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
         else:
             if print_debug_generation:
                 smart_print(f"\n\t\tno GA found in subset {subset_index} after {num_samples} tries")
-            bad_subset_indices.append(subset_index)
+            if subset_index not in good_subset_indices and subset_index not in bad_subset_indices:
+                bad_subset_indices.append(subset_index)
             continue
 
     if wordsize <= 4:
