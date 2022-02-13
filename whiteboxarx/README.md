@@ -10,7 +10,7 @@ To execute the scripts in this folder, it is important to first set the `PYTHONP
 ```
 $ export PYTHONPATH=/path/to/whiteboxarx_parent
 $ ls $PYTHONPATH
-boolcrypt whiteboxarx ... ..
+boolcrypt whiteboxarx ... ...
 ```
 
 ## Generating implicit white-box implementations
