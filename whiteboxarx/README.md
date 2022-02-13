@@ -98,7 +98,6 @@ The `FIRST_EXPLICIT_ROUND` and `LAST_EXPLICIT_ROUND` macros are defined in the e
 ```
 #define FIRST_EXPLICIT_ROUND(x, y) {first_explicit_round}
 #define LAST_EXPLICIT_ROUND(x, y) {last_explicit_round}
-
 ```
 
 The following variables can be used in the `FIRST_EXPLICIT_ROUND` and `LAST_EXPLICIT_ROUND` macros:
