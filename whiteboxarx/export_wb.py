@@ -140,7 +140,8 @@ def write_integer_with_encoding(my_integer, opened_file_object, encoding_mode=Fa
 
 def export_implicit_functions_to_C(
         encoded_implicit_round_functions, max_degree, use_redundant_perturbations,
-        filename_C_info, filename_C_array, encoding_mode, print_time_generation=False):
+        filename_C_info, filename_C_array, encoding_mode,
+        first_explicit_round, last_explicit_round, print_time_generation=False):
     if not use_redundant_perturbations:
         bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
     else:
@@ -184,17 +185,21 @@ def export_implicit_functions_to_C(
     WORD_OUT_TYPE = {4: "PRIx8", 16: "PRIx16", 32: "PRIx32", 64: "PRIx64"}
     WORD_CONSTANT_TYPE = {4: "UINT8_C", 16: "UINT16_C", 32: "UINT32_C", 64: "UINT64_C"}
 
-    smart_print_C_array_header(f"#define WORD_SIZE {ws}")
+    smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {int(use_redundant_perturbations)}")
     smart_print_C_array_header(f"#define MAX_DEGREE {max_degree}")
     smart_print_C_array_header(f"#define ROUNDS {len(encoded_implicit_round_functions)}")
+    smart_print_C_array_header(f"#define WORD_SIZE {ws}")
     smart_print_C_array_header(f"#define WORD_TYPE {WORD_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_IN_TYPE {WORD_IN_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_OUT_TYPE {WORD_OUT_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_CONSTANT_TYPE {WORD_CONSTANT_TYPE[ws]}")
-    smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {int(use_redundant_perturbations)}")
+    smart_print_C_array_header(f"#define WORD_MASK WORD_CONSTANT_TYPE({2 ** ws - 1})")
 
     smart_print_C_array_header(f"#define MONOMIAL_WORD_TYPE uint8_t")
     smart_print_C_array_header(f"#define MONOMIAL_WORD_SIZE 8")
+
+    smart_print_C_array_header(f"#define FIRST_EXPLICIT_ROUND(x, y) {first_explicit_round}")
+    smart_print_C_array_header(f"#define LAST_EXPLICIT_ROUND(x, y) {last_explicit_round}")
 
     list_zero = [0]*(num_eqs_per_system - 1)
     sorted_monomials = None

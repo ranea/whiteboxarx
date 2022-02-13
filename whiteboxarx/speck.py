@@ -3,6 +3,8 @@ import functools
 from collections import namedtuple
 from functools import partial
 
+import os
+
 import sage.all
 
 from boolcrypt.utilities import (
@@ -12,20 +14,16 @@ from boolcrypt.utilities import (
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
+from argparse import ArgumentParser
 
 SpeckInstance = namedtuple('SpeckInstance', 'name, default_rounds, ws, m, alpha, beta')
 
-
-Speck_8_16 = SpeckInstance("Speck_8_16", 4, 4, 4, 2, 1)  # non-standard
-Speck_32_64 = SpeckInstance("Speck_32_64", 22, 16, 4, 7, 2)
-Speck_48_96 = SpeckInstance("Speck_48_96", 23, 24, 4, 8, 3)
-Speck_64_96 = SpeckInstance("Speck_64_96", 26, 32, 3, 8, 3)
-Speck_64_128 = SpeckInstance("Speck_64_128", 27, 32, 4, 8, 3)
-Speck_128_256 = SpeckInstance("Speck_128_256", 34, 64, 4, 8, 3)
-
-
-AllSpeckInstances = [Speck_8_16, Speck_32_64, Speck_48_96, Speck_64_96, Speck_64_128, Speck_128_256]
-
+speck_instances = {
+    8: SpeckInstance("Speck_8_16", 4, 4, 4, 2, 1),  # non-standard
+    32: SpeckInstance("Speck_32_64", 22, 16, 4, 7, 2),
+    64: SpeckInstance("Speck_64_128", 27, 32, 4, 8, 3),
+    128: SpeckInstance("Speck_128_256", 34, 64, 4, 8, 3),
+}
 
 def get_round_keys(speck_instance, rounds, master_key):
     default_rounds = speck_instance.default_rounds
@@ -233,27 +231,24 @@ def get_first_and_last_explicit_rounds(speck_instance, print_intermediate_values
 
 
 if __name__ == '__main__':
-    # speck_instance = Speck_8_16
-    speck_instance = Speck_32_64
-    # speck_instance = Speck_64_128
-    # speck_instance = Speck_128_256
+    parser = ArgumentParser(prog="sage -python speck.py", description="Generate (unencoded) implicit and explicit affine layers of Speck instances")
+    parser.add_argument("key", nargs="+", help="the key to use for the affine layers, a hexadecimal representation of the words")
+    parser.add_argument("--block-size", nargs="?", type=int, default=128, choices=[8, 32, 64, 128], help="the block size in bits of the Speck instance (default: %(default)i)")
+    parser.add_argument("--output-file", nargs="?", default="stored_affine_layers.sobj", help="the file used to store the (unencoded) implicit and explicit affine layers (default: %(default)s)")
 
+    args = parser.parse_args()
+
+    assert not os.path.isfile(args.output_file), f"{args.output_file} already exists"
+
+    assert len(args.key) == 4, "key should be 4 words"
+    master_key = tuple(map(lambda k: int(k, 16), args.key))
+
+    speck_instance = speck_instances[args.block_size]
     rounds = speck_instance.default_rounds
 
-    if speck_instance == Speck_8_16:
-        master_key = (1, 2, 3, 4)
-    elif speck_instance == Speck_32_64:
-        master_key = (0x1918, 0x1110, 0x0908, 0x0100)
-    elif speck_instance == Speck_64_128:
-        master_key = (0x1b1a1918, 0x13121110, 0x0b0a0908, 0x03020100)
-    elif speck_instance == Speck_128_256:
-        master_key = (0x1f1e1d1c1b1a1918, 0x1716151413121110, 0x0f0e0d0c0b0a0908, 0x0706050403020100)
-    else:
-        raise ValueError("invalid instance")
+    implicit_affine_layers, explicit_affine_layers = get_unencoded_implicit_affine_layers(speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
+    for i, affine_layer in enumerate(implicit_affine_layers):
+        # Wrap in tuple because BooleanPolynomialVector can't be pickled.
+        implicit_affine_layers[i] = tuple(affine_layer)
 
-    implicit_affine_layers, _ = get_unencoded_implicit_affine_layers(speck_instance, rounds, master_key)
-
-    for i in range(len(implicit_affine_layers)):
-        print(f"round {i}:")
-        for j in range(len(implicit_affine_layers[i])):
-            print(f"implicit_affine_layers[round={i}][component={j}]:", implicit_affine_layers[i][j])
+    sage.all.save((implicit_affine_layers, explicit_affine_layers), args.output_file, compress=True)

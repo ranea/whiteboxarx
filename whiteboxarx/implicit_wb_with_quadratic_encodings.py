@@ -14,28 +14,15 @@ from boolcrypt.modularaddition import get_implicit_modadd_anf
 
 
 from whiteboxarx.implicit_wb_with_affine_encodings import (
-    SEED, USE_REDUNDANT_PERTURBATIONS,
-    TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE,
-    PRINT_TIME_GENERATION, PRINT_DEBUG_GENERATION,
     _DEBUG_SPLIT_RP,
     get_graph_automorphisms, get_redundant_perturbations, get_implicit_affine_round_encodings, get_random_affine_permutations,
 )
 
-# -- Script parameters --
 
-TRIVIAL_QSE = False  # whether to use trivial quadratic encodings
-CUBIC_IRF = False  # if True, quadratic encodings and graph automorphisms are chosen such that the encoded implicit round functions are cubic and not quartic
-MAX_DEG_IRF = False  # whether to use ensure that the encoded implicit round functions have maximum degree (cubic if CUBIC_IRF else quartic)
-
-# ----
-
-sage.all.set_random_seed(SEED)
-
-
-def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers, graph_automorphisms, filename):
+def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers, graph_automorphisms, filename, CUBIC_IRF, MAX_DEG_IRF, TRIVIAL_EE, TRIVIAL_QE, PRINT_DEBUG_GENERATION):
     ws = wordsize
 
-    if TRIVIAL_QSE is True:
+    if TRIVIAL_QE:
         rounds = len(explicit_affine_layers)
         assert rounds == len(graph_automorphisms)
 
@@ -64,7 +51,11 @@ def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers,
                       verbose=PRINT_DEBUG_GENERATION, filename=filename)
 
 
-def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_layers, filename):
+def get_encoded_implicit_round_funcions(
+        implicit_affine_layers, explicit_affine_layers, filename,
+        SEED, CUBIC_IRF, MAX_DEG_IRF, USE_REDUNDANT_PERTURBATIONS,
+        TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QE,
+        PRINT_TIME_GENERATION, PRINT_DEBUG_GENERATION):
     rounds = len(implicit_affine_layers)
     assert 1 <= rounds
     assert rounds == len(implicit_affine_layers)
@@ -81,25 +72,25 @@ def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_
         smart_print(f" - seed: {SEED}")
         smart_print(f" - CUBIC_MODE: {CUBIC_IRF}")
         smart_print(f" - USE_REDUNDANT_PERTURBATIONS: {USE_REDUNDANT_PERTURBATIONS}")
-        smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AP, TRIVIAL_QSE: {[TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QSE]}")
+        smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QE: {[TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QE]}")
         smart_print()
 
     assert ws == len(bpr_pmodadd.gens()) // 4
 
     implicit_pmodadd = [bpr_pmodadd(str(f)) for f in get_implicit_modadd_anf(ws, permuted=True, only_x_names=False)]
 
-    graph_automorphisms = get_graph_automorphisms(ws, rounds, filename)
+    graph_automorphisms = get_graph_automorphisms(ws, rounds, filename, TRIVIAL_GA, PRINT_DEBUG_GENERATION)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated graph automorphisms")
 
     explicit_affine_quadratic_se_encodings, explicit_affine_quadratic_extin_function, explicit_affine_quadratic_extout_function = \
-        get_explicit_affine_quadratic_se_encodings(ws, explicit_affine_layers, graph_automorphisms, filename)
+        get_explicit_affine_quadratic_se_encodings(ws, explicit_affine_layers, graph_automorphisms, filename, CUBIC_IRF, MAX_DEG_IRF, TRIVIAL_EE, TRIVIAL_QE, PRINT_DEBUG_GENERATION)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated affine-quadratic self-equivalences")
 
-    implicit_affine_round_encodings, explicit_affine_extin_function, explicit_affine_extout_function = get_implicit_affine_round_encodings(ws, rounds)
+    implicit_affine_round_encodings, explicit_affine_extin_function, explicit_affine_extout_function = get_implicit_affine_round_encodings(ws, rounds, TRIVIAL_EE, TRIVIAL_AE)
 
     def explicit_extin_function(v):
         v = explicit_affine_quadratic_extin_function(v)
@@ -112,13 +103,13 @@ def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
 
-    left_permutations = get_random_affine_permutations(2 * ws, rounds, bpr=bpr_pmodadd)
+    left_permutations = get_random_affine_permutations(2 * ws, rounds, TRIVIAL_AE, bpr=bpr_pmodadd)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated left permutations")
 
     if USE_REDUNDANT_PERTURBATIONS:
-        redundant_perturbations = get_redundant_perturbations(ws, rounds, degree_qi=2 if CUBIC_IRF else 3, bpr=bpr_pmodadd)
+        redundant_perturbations = get_redundant_perturbations(ws, rounds, 2 if CUBIC_IRF else 3, bpr_pmodadd, TRIVIAL_RP, TRIVIAL_AE)
 
         if PRINT_TIME_GENERATION:
             smart_print(f"{get_time()} | generated redundant perturbations")
@@ -137,9 +128,9 @@ def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_
         assert bpr_pmodadd == implicit_affine_layers[i][0].parent()
 
         degs = [f.degree() for f in anf]
-        if TRIVIAL_QSE is True or (i == 0 and TRIVIAL_EE):
+        if TRIVIAL_QE or (i == 0 and TRIVIAL_EE):
             assert max(degs) == 2
-        elif MAX_DEG_IRF is False:
+        elif not MAX_DEG_IRF:
             assert max(degs) >= 3
         else:
             assert max(degs) == (3 if CUBIC_IRF else 4), f"{degs}"
@@ -154,7 +145,7 @@ def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_
                 else:
                     # list_anfs.append([f + g for f, g in zip(anf, rp)])
                     perturbed_anf = sage.all.vector(bpr_pmodadd, [f + g for f, g in zip(anf, rp)])
-                    invertible_matrix = get_random_affine_permutations(2*ws, 1, bpr=bpr_pmodadd)[0].matrix
+                    invertible_matrix = get_random_affine_permutations(2*ws, 1, TRIVIAL_AE, bpr=bpr_pmodadd)[0].matrix
                     perturbed_anf = list(invertible_matrix * perturbed_anf)
                     list_anfs.append(perturbed_anf)
             if not _DEBUG_SPLIT_RP:
@@ -166,4 +157,4 @@ def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round functions with degrees {[collections.Counter(degs) for degs in list_degs]}")
 
-    return implicit_round_functions, explicit_extin_function, explicit_extout_function
+    return ws, implicit_round_functions, explicit_extin_function, explicit_extout_function
