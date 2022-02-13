@@ -7,6 +7,8 @@ from boolcrypt.utilities import (
     vector2int, get_time, get_smart_print, get_all_symbolic_coeff
 )
 
+import sage.all
+
 
 def bool_poly2sorted_coeffs(equation, input_variables, output_variables, max_degree, store_sorted_monomials=True):
     """Return a list of coefficients representing a system of binary equations.
@@ -189,7 +191,7 @@ def export_implicit_functions_to_C(
     smart_print_C_array_header(f"#define WORD_IN_TYPE {WORD_IN_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_OUT_TYPE {WORD_OUT_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_CONSTANT_TYPE {WORD_CONSTANT_TYPE[ws]}")
-    smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {use_redundant_perturbations}")
+    smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {int(use_redundant_perturbations)}")
 
     smart_print_C_array_header(f"#define MONOMIAL_WORD_TYPE uint8_t")
     smart_print_C_array_header(f"#define MONOMIAL_WORD_SIZE 8")
