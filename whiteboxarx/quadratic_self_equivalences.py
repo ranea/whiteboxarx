@@ -356,12 +356,14 @@ def get_explicit_affine_quadratic_se_encodings(
                 B_iprev = new_B_iprev
                 if ensure_max_degree and verbose:
                     smart_print(f"\n\t\t\tfound SE in subset {subset_index} after {index_sample} tries")
-                good_subset_indices.append(subset_index)
+                if subset_index not in good_subset_indices:
+                    good_subset_indices.append(subset_index)
                 break
             else:
                 if verbose:
                     smart_print(f"\n\t\t\tno SE found in subset {subset_index} after {num_samples} tries")
-                bad_subset_indices.append(subset_index)
+                if subset_index not in good_subset_indices and subset_index not in bad_subset_indices:
+                    bad_subset_indices.append(subset_index)
                 continue
 
             if B_iprev is not None:
