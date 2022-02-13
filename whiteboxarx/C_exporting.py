@@ -137,14 +137,14 @@ def write_integer_with_encoding(my_integer, opened_file_object, encoding_mode=Fa
 
 
 def export_implicit_functions_to_C(
-        wordsize, encoded_implicit_round_functions, max_degree, use_redundant_perturbations,
+        encoded_implicit_round_functions, max_degree, use_redundant_perturbations,
         filename_C_info, filename_C_array, encoding_mode, print_time_generation=False):
     if not use_redundant_perturbations:
         bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
     else:
         bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
 
-    ws = wordsize
+    ws = len(bpr_pmodadd.gens()) // 4
     assert ws == len(bpr_pmodadd.gens()) // 4
 
     smart_print_C_info = get_smart_print(filename_C_info)

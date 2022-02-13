@@ -284,7 +284,7 @@ def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr):
     return list_redundant_perturbations
 
 
-def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filename):
+def get_encoded_implicit_round_funcions(implicit_affine_layers, filename):
     """
     implicit_affine_layers contains the affine layers of each round
     (since it is in implicit form, it contains the "input" and "output" affine part
@@ -300,7 +300,8 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
     assert 1 <= rounds
     assert rounds == len(implicit_affine_layers)
 
-    ws = wordsize
+    bpr_pmodadd = implicit_affine_layers[0][0].parent()
+    ws = len(bpr_pmodadd.gens()) // 4
 
     smart_print = get_smart_print(filename)
 
@@ -313,7 +314,6 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, filena
         smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AP: {[TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE]}")
         smart_print()
 
-    bpr_pmodadd = implicit_affine_layers[0][0].parent()
     assert ws == len(bpr_pmodadd.gens()) // 4
 
     implicit_pmodadd = [bpr_pmodadd(str(f)) for f in get_implicit_modadd_anf(ws, permuted=True, only_x_names=False)]

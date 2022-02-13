@@ -64,12 +64,13 @@ def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers,
                       verbose=PRINT_DEBUG_GENERATION, filename=filename)
 
 
-def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explicit_affine_layers, filename):
+def get_encoded_implicit_round_funcions(implicit_affine_layers, explicit_affine_layers, filename):
     rounds = len(implicit_affine_layers)
     assert 1 <= rounds
     assert rounds == len(implicit_affine_layers)
 
-    ws = wordsize
+    bpr_pmodadd = implicit_affine_layers[0][0].parent()
+    ws = len(bpr_pmodadd.gens()) // 4
 
     smart_print = get_smart_print(filename)
 
@@ -83,7 +84,6 @@ def get_encoded_implicit_round_funcions(wordsize, implicit_affine_layers, explic
         smart_print(f" - TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AP, TRIVIAL_QSE: {[TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QSE]}")
         smart_print()
 
-    bpr_pmodadd = implicit_affine_layers[0][0].parent()
     assert ws == len(bpr_pmodadd.gens()) // 4
 
     implicit_pmodadd = [bpr_pmodadd(str(f)) for f in get_implicit_modadd_anf(ws, permuted=True, only_x_names=False)]
