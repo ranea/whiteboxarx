@@ -6,14 +6,10 @@ import sage.all
 
 from boolcrypt.utilities import (
     substitute_variables, BooleanPolynomialRing,
-    vector2int,
     matrix2anf, compose_anf_fast,
     get_time, get_smart_print
 )
 
-from boolcrypt.functionalequations import (
-    find_fixed_vars
-)
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
@@ -174,7 +170,6 @@ def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr, TRIVIAL_RP, TR
         return list_redundant_perturbations
 
     def get_a0_a1_b0_b1():
-        """Return A0, A1, B0, B1 such that B0, B1 != A0, A1."""
         if use_quasilinear_rp:
             def get_random_boolean_function():
                 p1 = bpr.random_element(degree=1, terms=sage.all.Infinity, vars_set=list(range(4*ws)))
@@ -270,15 +265,12 @@ def get_encoded_implicit_round_funcions(
         TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE,
         PRINT_TIME_GENERATION, PRINT_DEBUG_GENERATION):
     """
-    implicit_affine_layers contains the affine layers of each round
+    The argument implicit_affine_layers contains the affine layers of each round
     (since it is in implicit form, it contains the "input" and "output" affine part
-    of each round)
+    of each round).
 
-    this function only supports ciphers where the non-linear layer of each
-    round is exactly (x, y) = (x \boxplus y,y)
-
-    wordsize is the bit-size of one of the inputs of the modular addition
-    (half of the total blocksize since only 1 modular addition is supported)
+    This function currently only supports ciphers where the non-linear layer of each
+    round is exactly (x, y) = (x \boxplus y,y).
     """
     rounds = len(implicit_affine_layers)
     assert 1 <= rounds
@@ -287,11 +279,14 @@ def get_encoded_implicit_round_funcions(
     bpr_pmodadd = implicit_affine_layers[0][0].parent()
     ws = len(bpr_pmodadd.gens()) // 4
 
+    # wordsize is the bit-size of one of the inputs of the modular addition
+    # (half of the total blocksize since only 1 modular addition is supported)
+
     smart_print = get_smart_print(filename)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"# {get_time()} | started generation of implicit white-box implementation with affine encodings with parameters:")
-        smart_print(f" - wordsize: {ws}")
+        smart_print(f" - wordsize: {ws}, blocksize: {2*ws}")
         smart_print(f" - rounds: {rounds}")
         smart_print(f" - seed: {SEED}")
         smart_print(f" - USE_REDUNDANT_PERTURBATIONS: {USE_REDUNDANT_PERTURBATIONS}")

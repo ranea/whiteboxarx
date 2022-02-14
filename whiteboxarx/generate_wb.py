@@ -91,7 +91,6 @@ if __name__ == '__main__':
 
         block_size = 2 * ws
 
-        # TODO: remove dependency on Speck
         first_explicit_round, last_explicit_round = get_first_and_last_explicit_rounds(
             speck_instances[block_size], args.print_intermediate_values, filename=args.debug_file)
 

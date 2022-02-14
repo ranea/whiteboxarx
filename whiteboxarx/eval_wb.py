@@ -21,6 +21,7 @@ def bitvectors_to_gf2vector(x, y, ws):
 def gf2vector_to_bitvectors(v, ws):
     return vector2int(v[:ws]), vector2int(v[ws:])
 
+
 def get_eval_implicit_wb_implementation(
         wordsize, encoded_implicit_round_functions,
         USE_REDUNDANT_PERTURBATIONS,
@@ -28,18 +29,18 @@ def get_eval_implicit_wb_implementation(
         explicit_extin_function=None, explicit_extout_function=None,
         first_explicit_round=None, last_explicit_round=None,
     ):
-    """
-    get a function that evaluates the implicit white-box implementation
-    the eval function takes and returns a GF(2) vector
+    """Return a Python function that evaluates the implicit white-box implementation.
 
-    (optional) explicit_extin_function is a python function that
-    cancels the input external encoding (obtained in get_encoded_implicit_round_funcions)
-    similar for explicit_extout_function
+    This function takes and return a single SageMath-GF(2) vector.
 
-    (optional) first_explicit_round is a python function that
+    The (optional) argument explicit_extin_function is a python function that
+    cancels the input external encoding (obtained in get_encoded_implicit_round_funcions).
+    Similar for explicit_extout_function.
+
+    The (optional) argument first_explicit_round is a python function that
     evaluates the first round of the cipher explicitly (that was not included
-    in the encoded_implicit_round_functions)
-    similar for last_explicit_round
+    in the encoded_implicit_round_functions).
+    Similar for last_explicit_round.
     """
     rounds = len(encoded_implicit_round_functions)
     ws = wordsize

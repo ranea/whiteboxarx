@@ -1,16 +1,6 @@
-"""Get a list of graph automorphisms from stored_cczse_pmodadd_w*.sobj.
+"""Get a list of graph automorphisms from stored_cczse_pmodadd_w*.sobj."""
+import warnings
 
-The file data/stored_cczse_pmodadd_w*.sobj contains subsets of functions,
-some of them graph automorphisms, but other are non-invertible functions
-or right SE of T
-
-WARNING: stored_cczse_pmodadd_w*.sobj only contains some valid graph automorphisms
-(invertible and non-right SE of T) and not all the valid graph automorphisms
-that the modular addition has
-
-MAX_SAMPLES_PER_GA_SUBSET is the number of functions to try in each subset
-when looking for good graph automorphisms
-"""
 import sage.all
 from sage.sat.boolean_polynomials import solve as solve_sat
 
@@ -88,6 +78,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
         assert len(bad_subset_indices) < len(list_extra_var2val)
         if len(bad_subset_indices) + len(good_subset_indices) >= len(list_extra_var2val):
             subset_index = good_subset_indices[sage.all.ZZ.random_element(0, len(good_subset_indices))]
+            warnings.warn(f"finding GA from subset {subset_index} again")
         else:
             subset_index = sage.all.ZZ.random_element(0, len(list_extra_var2val))
             if subset_index in bad_subset_indices or subset_index in good_subset_indices:

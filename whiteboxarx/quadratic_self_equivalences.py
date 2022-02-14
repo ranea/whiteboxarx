@@ -1,26 +1,6 @@
-"""Get a list of affine-quadratic self-equivalences from stored_qase_pmodadd_w*.sobj.
+"""Get a list of affine-quadratic self-equivalences from stored_qase_pmodadd_w*.sobj."""
+import warnings
 
-The file data/stored_qase_pmodadd_w*.sobj contains a set of
-affine-quadratic self-equivalences (given as a list of equations)
-of the permuted modular addition for the wordsize w*-.
-
-WARNING: stored_qase_pmodadd_w*.sobj does not contain all
-affine-quadratic self-equivalences.
-
-To get random self-equivalences from stored_qase_pmodadd_w*.sobj,
-first a number of solutions (MAX_SUBSET_SOLUTIONS*NUM_ROUNDS)
-are obtained from stored_qase_pmodadd_w*.sobj
-Each solution actually gives a subset of self-equivalences.
-
-If ensure_max_degree=False, simply a random self-equivalence is chosen for each
-subset until obtaining all the needed self-equivalences.
-Otherwise, for each self-equivalences subset we try MAX_SAMPLES_PER_SE_SUBSET times:
-if no self-equivalence is obtained such that the resulting IRF has maximum degree,
-the current subset is ignored and a new one is chosen.
-
-WARNING: this method does not uniformly sample self-equivalences
-from stored_qase_pmodadd_w*.sobj.
-"""
 import sage.all
 from sage.sat.boolean_polynomials import solve as solve_sat
 
@@ -33,9 +13,6 @@ from boolcrypt.utilities import (
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
 from boolcrypt.se_pmodadd.find_quadraticaffine_se import graph_qase_coeffs2modadd_qase_anf
-
-
-# TODO: choose number of solutions and MAX_SAMPLES_PER_SE_SUBSET empirically
 
 
 MAX_SUBSET_SOLUTIONS = 128
@@ -316,6 +293,7 @@ def get_explicit_affine_quadratic_se_encodings(
             assert len(bad_subset_indices) < len(list_solution_se_invAi_Bi)
             if len(bad_subset_indices) + len(good_subset_indices) >= len(list_solution_se_invAi_Bi):
                 subset_index = good_subset_indices[sage.all.ZZ.random_element(0, len(good_subset_indices))]
+                warnings.warn(f"finding SE from subset {subset_index} again")
             else:
                 subset_index = sage.all.ZZ.random_element(0, len(list_solution_se_invAi_Bi))
                 if subset_index in bad_subset_indices or subset_index in good_subset_indices:

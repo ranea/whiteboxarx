@@ -67,7 +67,7 @@ def get_encoded_implicit_round_funcions(
 
     if PRINT_TIME_GENERATION:
         smart_print(f"# {get_time()} | started generation of implicit white-box implementation with quadratic encodings with parameters:")
-        smart_print(f" - wordsize: {ws}")
+        smart_print(f" - wordsize: {ws}, blocksize: {2*ws}")
         smart_print(f" - rounds: {rounds}")
         smart_print(f" - seed: {SEED}")
         smart_print(f" - CUBIC_MODE: {CUBIC_IRF}")

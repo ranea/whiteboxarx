@@ -7,8 +7,6 @@ from boolcrypt.utilities import (
     vector2int, get_time, get_smart_print, get_all_symbolic_coeff
 )
 
-import sage.all
-
 
 def bool_poly2sorted_coeffs(equation, input_variables, output_variables, max_degree, store_sorted_monomials=True):
     """Return a list of coefficients representing a system of binary equations.

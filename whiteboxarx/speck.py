@@ -1,5 +1,4 @@
 """Implicit round functions of Speck (without encodings)."""
-import functools
 from collections import namedtuple
 from functools import partial
 
@@ -24,6 +23,7 @@ speck_instances = {
     64: SpeckInstance("Speck_64_128", 27, 32, 4, 8, 3),
     128: SpeckInstance("Speck_128_256", 34, 64, 4, 8, 3),
 }
+
 
 def get_round_keys(speck_instance, rounds, master_key):
     default_rounds = speck_instance.default_rounds
