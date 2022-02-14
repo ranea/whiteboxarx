@@ -81,11 +81,13 @@ options:
 When executed, `generate_wb.py` always generates the encoded implicit round functions first. This process can be customized using the many parameters described above. Of particular importance is the `input-file` parameter, which must contain a pickled (using SageMath's `save` function) tuple of implicit and explicit affine layers. Additional debugging information can be output using `print-time-generation` and `print-debug-generation`, and saved using `debug-file`.
 
 Notably, there are also some restrictions on the parameters:
-* `trivial-quadratic-encodings` is only used when `irf-degree` is set to 3 or 4
+* `trivial-quadratic-encodings` is only used when `irf-degree` is set to 3 or 4; if enabled, the round encodings only contain affine permutations and not affine-quadratic self-equivalences 
 * `trivial-external-encodings` must be set when `mode` is set to `export` (the exported C code does not yet support external encodings)
-* `trivial-redundant-perturbations` cannot be combined with `disable-redundant-perturbations`
+* `trivial-redundant-perturbations` cannot be combined with `disable-redundant-perturbations` (redundant perturbations is an additional countermeasure where random polynomials are added to the implicit round functions without affecting the input-output behaviour)
 * `export-file`, `encoding-mode`, `first-explicit-round`, and `last-explicit-round` are only used when `mode` is set to `export`
 * `plaintext`, `print-intermediate-values`, and `print-debug-intermediate-values` are only used when `mode` is set to `eval`
+
+For large blocksizes and for `irf-degree` 3 or 4, note `generate_wb.py` can take several hours.
 
 After the encoded implicit round functions are generated, `generate_wb.py` enters one of two modes, depending on the `mode` parameter. The default mode is `export`, which exports the encoded implicit round functions to C code. The other mode is `eval`, which evaluates the encoded implicit round functions for some plaintext and outputs the ciphertext, in Python. Currently, only the Speck cipher is supported in `eval` mode.
 
