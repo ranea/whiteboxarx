@@ -21,6 +21,8 @@ $ export PYTHONPATH=/path/to/boolcrypt-master:/path/to/whiteboxarx_parent
 $ echo $PYTHONPATH
 /.../boolcrypt-master:../<parent_folder_of_whiteboxarx>
 ```
+In a virtual environment, [add2virtualenv](https://virtualenvwrapper.readthedocs.io/en/latest/command_ref.html#add2virtualenv)
+can be used to add folders to the `PYTHONPATH`.
 
 ### Generating implicit white-box implementations
 The `generate_wb.py` script can be used to generate implicit white-box implementations of ARX ciphers. This script takes some implicit and explicit affine layers as input, encoded in an input file (see the section on Speck for examples), and encodes them using affine or quadratic encodings. The encoded round functions can then be exported to C code, or evaluated using Python.
