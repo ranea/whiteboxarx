@@ -76,7 +76,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
         assert len(bad_subset_indices) < len(list_extra_var2val)
         if len(bad_subset_indices) + len(good_subset_indices) >= len(list_extra_var2val):
             subset_index = good_subset_indices[sage.all.ZZ.random_element(0, len(good_subset_indices))]
-            warnings.warn(f"finding GA from subset {subset_index} again")
+            # warnings.warn(f"finding GA from subset {subset_index} again")
         else:
             subset_index = sage.all.ZZ.random_element(0, len(list_extra_var2val))
             if subset_index in bad_subset_indices or subset_index in good_subset_indices:

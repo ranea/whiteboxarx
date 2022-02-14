@@ -292,7 +292,7 @@ def get_explicit_affine_quadratic_se_encodings(
             assert len(bad_subset_indices) < len(list_solution_se_invAi_Bi)
             if len(bad_subset_indices) + len(good_subset_indices) >= len(list_solution_se_invAi_Bi):
                 subset_index = good_subset_indices[sage.all.ZZ.random_element(0, len(good_subset_indices))]
-                warnings.warn(f"finding SE from subset {subset_index} again")
+                # warnings.warn(f"finding SE from subset {subset_index} again")
             else:
                 subset_index = sage.all.ZZ.random_element(0, len(list_solution_se_invAi_Bi))
                 if subset_index in bad_subset_indices or subset_index in good_subset_indices:
