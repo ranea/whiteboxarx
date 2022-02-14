@@ -105,7 +105,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
 
             if not l_c_linv_i_matrix.is_invertible():
                 # sampled GA not invertible
-                if print_debug_generation: smart_print("NI,", end="")
+                if print_debug_generation: smart_print(".", end="")
                 continue  # sample again ordered_replacement_copy_copy
 
             # check GA is not a right SE of T: symbolically T = B (T l_c_linv_i)
@@ -131,7 +131,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
 
             if is_right_SE:
                 # sampled GA invertible but a right SE of T
-                if print_debug_generation: smart_print("RSE,", end="")
+                if print_debug_generation: smart_print(":", end="")
                 continue  # sample again ordered_replacement_copy_copy
 
             # found valid GA
