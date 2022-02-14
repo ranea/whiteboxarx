@@ -87,7 +87,8 @@ Notably, there are also some restrictions on the parameters:
 * `export-file`, `encoding-mode`, `first-explicit-round`, and `last-explicit-round` are only used when `mode` is set to `export`
 * `plaintext`, `print-intermediate-values`, and `print-debug-intermediate-values` are only used when `mode` is set to `eval`
 
-For large blocksizes and for `irf-degree` 3 or 4, note `generate_wb.py` can take several hours.
+For large blocksizes note `generate_wb.py` can take several hours since the generation of graph automorphisms and quadratic encodings
+(i.e., affine-quadratic self-equivalences) is currently not optimized.
 
 After the encoded implicit round functions are generated, `generate_wb.py` enters one of two modes, depending on the `mode` parameter. The default mode is `export`, which exports the encoded implicit round functions to C code. The other mode is `eval`, which evaluates the encoded implicit round functions for some plaintext and outputs the ciphertext, in Python. Currently, only the Speck cipher is supported in `eval` mode.
 
