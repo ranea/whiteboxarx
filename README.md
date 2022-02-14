@@ -1,7 +1,8 @@
 # Supporting Material
 
-boolcrypt is [...]
+BoolCrypt is a Python 3 library for vectorial Boolean functions in cryptography.
+For more info, see `boolcrypt/README.md`.
 
-whitebox arx is [...]
-
-For more info, see `boolcrypt/README.md` or `whiteboxarx/README.md`
+The folder `whiteboxarx` contains the script `generate_wb.py` to generate
+implicit white-box implementations of ARX ciphers.
+For more info, see `whiteboxarx/README.md`.

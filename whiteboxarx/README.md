@@ -1,11 +1,18 @@
-# Requirements
+# Implicit White-box Implementations of ARX Ciphers
+
+This folder contains the script `generate_wb.py` to generate
+implicit white-box implementations of ARX ciphers and other
+auxiliary scripts.
+
+
+## Requirements
 * Python 3
 * [SageMath](https://www.sagemath.org/)
 * [cryptominisat](https://github.com/msoos/cryptominisat)
 * A C compiler (e.g. [gcc](https://gcc.gnu.org/)) (to compile exported C code)
 * [m4ri](https://bitbucket.org/malb/m4ri) (to compile exported C code)
 
-# Usage
+## Usage
 To execute the scripts in this folder, it is important to first set the `PYTHONPATH` environment variable correctly. It has to be set to the parent folder containing `boolcrypt` and `whiteboxarx` folders. This ensures the `boolcrypt` and `whiteboxarx` libraries can be found by the scripts in this directory. An example for Unix:
 ```
 $ export PYTHONPATH=/path/to/whiteboxarx_parent
@@ -13,7 +20,7 @@ $ ls $PYTHONPATH
 boolcrypt whiteboxarx ... ...
 ```
 
-## Generating implicit white-box implementations
+### Generating implicit white-box implementations
 The `generate_wb.py` script can be used to generate implicit white-box implementations of ARX ciphers. This script takes some implicit and explicit affine layers as input, encoded in an input file (see the section on Speck for examples), and encodes them using affine or quadratic encodings. The encoded round functions can then be exported to C code, or evaluated using Python.
 
 `generate_wb.py` can be executed using SageMath as follows:
@@ -78,7 +85,7 @@ Notably, there are also some restrictions on the parameters:
 
 After the encoded implicit round functions are generated, `generate_wb.py` enters one of two modes, depending on the `mode` parameter. The default mode is `export`, which exports the encoded implicit round functions to C code. The other mode is `eval`, which evaluates the encoded implicit round functions for some plaintext and outputs the ciphertext, in Python. Currently, only the Speck cipher is supported in `eval` mode.
 
-### Exporting to C code
+#### Exporting to C code
 When the `export` mode is selected, the encoded implicit round functions are exported to a C file or "backend". The name of this file can be configured using the `export-file` parameter. After the C backend file is exported, it can be used in the `white_box_arx.c` file. This code contains all boilerplate to execute arbitrary implicit white-box ARX implementations (using a permuted modular addition in its round function).
 
 Crucially, `white_box_arx.c` includes the C backend file as follows:
@@ -91,7 +98,7 @@ The `encoding-mode` parameter specifies how the round function data should be en
 
 Finally, the `first-explicit-round` and `last-explicit-round` are discussed more in depth in the next section.
 
-### Using the FIRST_EXPLICIT_ROUND and LAST_EXPLICIT_ROUND macros
+#### Using the FIRST_EXPLICIT_ROUND and LAST_EXPLICIT_ROUND macros
 `generate_wb.py` accepts two parameters, `first-explicit-round` and `last-explicit-round`, which can be used to define some C code. This C code is executed on the input and output words, before and after the implicit round functions are executed, respectively.
 
 The `FIRST_EXPLICIT_ROUND` and `LAST_EXPLICIT_ROUND` macros are defined in the exported C file as follows:
@@ -129,10 +136,10 @@ Here, the alpha value is 8.
 
 The `last-explicit-round` parameter can always be left omitted for Speck.
 
-### Evaluating implicit white-box implementation
+#### Evaluating implicit white-box implementation
 When the `eval` mode is selected, the encoded implicit round functions are evaluated in Python. This mode only supports the Speck block cipher. The `plaintext` parameter specifies the plaintext to evaluate. Debug information and intermediate round values can be displayed using the `print-intermediate-values` and `print-debug-intermediate-values` parameters.
 
-## Example: implicit white-box Speck implementations
+### Example: implicit white-box Speck implementations
 The `speck.py` script contains an example implementation to generate the (unencoded) implicit and explicit affine layers for the Speck block cipher. It can be invoked from the command line to save these affine layers to a file. This output file can then be used as an argument for `generate_wb.py` to generate an implicit white-box Speck implementation.
 
 `speck.py` can be executed using SageMath as follows:
