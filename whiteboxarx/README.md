@@ -13,11 +13,13 @@ auxiliary scripts.
 * [m4ri](https://bitbucket.org/malb/m4ri) (to compile exported C code)
 
 ## Usage
-To execute the scripts in this folder, it is important to first set the `PYTHONPATH` environment variable correctly. It has to be set to the parent folder containing `boolcrypt` and `whiteboxarx` folders. This ensures the `boolcrypt` and `whiteboxarx` libraries can be found by the scripts in this directory. An example for Unix:
+To execute the scripts in this folder, it is important to first set the `PYTHONPATH` environment variable correctly. 
+It has to be set to (1) the parent folder of `whiteboxarx` and (2) to `boolcrypt-master` (the parent folder of `boolcrypt`). 
+This ensures the `boolcrypt` library and the scripts in `whiteboxarx` can be found. An example for Unix:
 ```
-$ export PYTHONPATH=/path/to/whiteboxarx_parent
-$ ls $PYTHONPATH
-boolcrypt whiteboxarx ... ...
+$ export PYTHONPATH=/path/to/boolcrypt-master:/path/to/whiteboxarx_parent
+$ echo $PYTHONPATH
+/.../boolcrypt-master:../<parent_folder_of_whiteboxarx>
 ```
 
 ### Generating implicit white-box implementations
