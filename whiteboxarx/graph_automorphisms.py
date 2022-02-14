@@ -16,8 +16,6 @@ from boolcrypt.modularaddition import get_implicit_modadd_anf
 from boolcrypt.se_pmodadd.find_implicit import graph_cczse_coeffs2modadd_cczse_anf
 
 
-MAX_SAMPLES_PER_GA_SUBSET = 8  # empirically found
-
 
 def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, use_same_ga_for_all_rounds=False):
     ws = wordsize
@@ -90,11 +88,12 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
 
         ordered_replacement_copy_copy = ordered_replacement_copy[:]
 
-        subset_cardinality = ordered_replacement_copy_copy[4*ws:  len(variable_names)].count(None)
-        num_samples = min(subset_cardinality, MAX_SAMPLES_PER_GA_SUBSET)
+        subset_cardinality_log2 = ordered_replacement_copy_copy[4*ws:  len(variable_names)].count(None)
+        subset_cardinality = 2**subset_cardinality_log2
+        num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))
         if print_debug_generation:
             smart_print(f"\tfinding GA in subset {subset_index} by sampling "
-                        f"{num_samples} functions out of {subset_cardinality}: ", end="")
+                        f"{num_samples} functions out of 2^{subset_cardinality_log2}: ", end="")
 
         for index_sample in range(num_samples):
             for j in range(4*ws, len(variable_names)):
@@ -149,6 +148,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
         else:
             if print_debug_generation:
                 smart_print(f"\n\t\tno GA found in subset {subset_index} after {num_samples} tries")
+            assert not (subset_index in good_subset_indices and num_samples == subset_cardinality)
             if subset_index not in good_subset_indices and subset_index not in bad_subset_indices:
                 bad_subset_indices.append(subset_index)
             continue

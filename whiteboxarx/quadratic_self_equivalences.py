@@ -16,7 +16,6 @@ from boolcrypt.se_pmodadd.find_quadraticaffine_se import graph_qase_coeffs2modad
 
 
 MAX_SUBSET_SOLUTIONS = 128
-MAX_SAMPLES_PER_SE_SUBSET = 8
 
 
 def get_explicit_affine_quadratic_se_encodings(
@@ -306,13 +305,15 @@ def get_explicit_affine_quadratic_se_encodings(
             ordered_replacement_copy_copy = ordered_replacement_copy[:]
 
             if not ensure_max_degree:
+                subset_cardinality = 1
                 num_samples = 1
             else:
-                subset_cardinality = ordered_replacement_copy_copy[4 * ws:  len(variable_names)].count(None)
-                num_samples = min(subset_cardinality, MAX_SUBSET_SOLUTIONS)
+                subset_cardinality_log2 = ordered_replacement_copy_copy[4 * ws:  len(variable_names)].count(None)
+                subset_cardinality = 2 ** subset_cardinality_log2
+                num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))
                 if verbose:
                     smart_print(f"\t\tfinding SE leading to max IRF-degree in subset {subset_index} "
-                                f"by sampling {num_samples} functions out of {subset_cardinality}: ", end="")
+                                f"by sampling {num_samples} functions out of 2^{subset_cardinality_log2}: ", end="")
 
             for index_sample in range(num_samples):
                 for j in range(4 * ws, len(variable_names)):
@@ -340,6 +341,7 @@ def get_explicit_affine_quadratic_se_encodings(
             else:
                 if verbose:
                     smart_print(f"\n\t\t\tno SE found in subset {subset_index} after {num_samples} tries")
+                assert not (subset_index in good_subset_indices and num_samples == subset_cardinality)
                 if subset_index not in good_subset_indices and subset_index not in bad_subset_indices:
                     bad_subset_indices.append(subset_index)
                 continue
