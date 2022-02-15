@@ -31,7 +31,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    assert not (args.mode == "export" and not args.trivial_external_encodings), "only trivial external encodings are supported in export mode"
     assert args.debug_file is None or not os.path.isfile(args.debug_file), f"{args.debug_file} already exists"
 
     (unencoded_implicit_affine_layers, unencoded_explicit_affine_layers) = sage.all.load(args.input_file, compress=True)
