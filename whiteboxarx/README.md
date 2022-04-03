@@ -80,7 +80,7 @@ Notably, there are also some restrictions on the parameters:
 * `export-file`, `encoding-mode`, `first-explicit-round`, and `last-explicit-round` are only used when `mode` is set to `export`
 * `plaintext`, `print-intermediate-values`, and `print-debug-intermediate-values` are only used when `mode` is set to `eval`
 
-For large blocksizes, note `generate_wb.py` can take several hours due to the generation of graph automorphisms and quadratic encodings (i.e., affine-quadratic self-equivalences).
+For large blocksizes `generate_wb.py` can take several hours due to the generation of graph automorphisms and quadratic encodings (i.e., affine-quadratic self-equivalences).
 
 After the encoded implicit round functions are generated, `generate_wb.py` enters one of two modes depending on the `mode` parameter: 
 
