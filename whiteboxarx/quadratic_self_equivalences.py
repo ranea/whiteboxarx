@@ -1,6 +1,29 @@
-"""Get a list of affine-quadratic self-equivalences from stored_qase_pmodadd_w*.sobj."""
-import warnings
+"""Get a list of affine-quadratic self-equivalences from `stored_qase_pmodadd_w*.sobj`.
 
+The file `data/stored_qase_pmodadd_w*.sobj` contains affine-quadratic
+self-equivalences (given as solutions of a system of equations)
+of the permuted modular addition for the wordsize w*-.
+
+To sample affine-quadratic self-equivalences, first
+`MAX_SUBSET_SOLUTIONS * rounds` class solutions are obtained
+from the system of equations included in `stored_qase_pmodadd_w*.sobj`.
+Each class solution gives a subset of self-equivalences.
+
+If `ensure_max_degree=False`, a random self-equivalence is sampled for each
+subset until obtaining all the needed self-equivalences.
+Otherwise, for each subset we try `MAX_SAMPLES_PER_SE_SUBSET` times;
+if no self-equivalence is obtained such that the resulting implicit round
+function has maximum degree, the current subset is ignored and a new one is chosen.
+
+Note that the file `stored_qase_pmodadd_w*.sobj` does not contain all
+the affine-quadratic self-equivalences of the permuted modular addition,
+and the sampling is not uniformly.
+
+Moreover, if `use_external_encodings=True`, note the external encodings
+are not chosen as random quadratic permutation (not implemented yet),
+but as right quadratic self-equivalences composed with
+random affine permutations.
+"""
 import sage.all
 from sage.sat.boolean_polynomials import solve as solve_sat
 
@@ -310,7 +333,7 @@ def get_explicit_affine_quadratic_se_encodings(
             else:
                 subset_cardinality_log2 = ordered_replacement_copy_copy[4 * ws:  len(variable_names)].count(None)
                 subset_cardinality = 2 ** subset_cardinality_log2
-                num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))
+                num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))  # MAX_SAMPLES_PER_SE_SUBSET
                 if verbose:
                     smart_print(f"\t\tfinding SE leading to max IRF-degree in subset {subset_index} "
                                 f"by sampling {num_samples} functions out of 2^{subset_cardinality_log2}: ", end="")

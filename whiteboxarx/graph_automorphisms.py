@@ -1,6 +1,15 @@
-"""Get a list of graph automorphisms from stored_cczse_pmodadd_w*.sobj."""
-import warnings
+"""Get a list of graph automorphisms from `stored_cczse_pmodadd_w*.sobj`.
 
+The file `data/stored_cczse_pmodadd_w*.sobj` contains subsets of functions
+where graph automorphisms of the permuted modular addition (that are not
+right SE of the implicit function of the permuted modular addition) for
+the wordsize w* can be sampled. These subsets of functions also contain other
+functions, and sampling graph automorphisms requires the filtering done here.
+
+Note that the file `stored_cczse_pmodadd_w*.sobj` does not contain all
+the graph automorphisms of the permuted modular addition,
+and the sampling is not uniformly.
+"""
 import sage.all
 from sage.sat.boolean_polynomials import solve as solve_sat
 
@@ -14,7 +23,6 @@ from boolcrypt.functionalequations import solve_functional_equation
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
 from boolcrypt.se_pmodadd.find_implicit import graph_cczse_coeffs2modadd_cczse_anf
-
 
 
 def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, use_same_ga_for_all_rounds=False):
@@ -90,7 +98,7 @@ def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, 
 
         subset_cardinality_log2 = ordered_replacement_copy_copy[4*ws:  len(variable_names)].count(None)
         subset_cardinality = 2**subset_cardinality_log2
-        num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))
+        num_samples = min(subset_cardinality, max(subset_cardinality_log2, 8))  # MAX_SAMPLES_PER_GA_SUBSET
         if print_debug_generation:
             smart_print(f"\tfinding GA in subset {subset_index} by sampling "
                         f"{num_samples} functions out of 2^{subset_cardinality_log2}: ", end="")

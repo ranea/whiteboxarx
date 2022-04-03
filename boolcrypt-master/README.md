@@ -12,6 +12,8 @@ BoolCrypt is a Python 3 library for vectorial Boolean functions in cryptography.
 Most of the functions and classes in BoolCrypt contain many examples of their usage in their docstrings,
 also available in the HTML documentation in [html_documentation.zip](html_documentation.zip).
 
+BoolCrypt was proposed in [Implicit White-Box Implementations: White-Boxing ARX Ciphers](https://eprint.iacr.org/2022/XXX),
+and it is a dependency of [whiteboxarx](https://github.com/ranea/whiteboxarx).
 
 ## Installation
 
