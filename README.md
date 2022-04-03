@@ -6,9 +6,9 @@ Generate implicit white-box implementations of ARX ciphers following the method 
 
 * Python 3
 * [BoolCrypt](https://github.com/ranea/boolcrypt)
-* [SageMath](https://www.sagemath.org/) equipped with [cryptominisat](https://github.com/msoos/cryptominisat)
+* [SageMath](https://www.sagemath.org/) equipped with [CryptoMiniSat](https://github.com/msoos/cryptominisat)
 * [gcc](https://gcc.gnu.org/) or another C compiler (to compile exported C code)
-* [m4ri](https://bitbucket.org/malb/m4ri) (to compile exported C code)
+* [M4RI](https://bitbucket.org/malb/m4ri) (to compile exported C code)
 
 ## Usage
 
