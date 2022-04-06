@@ -1,6 +1,6 @@
 # Implicit White-box Implementations of ARX Ciphers
 
-Generate implicit white-box implementations of ARX ciphers following the method described in the paper [Implicit White-Box Implementations: White-Boxing ARX Ciphers](https://eprint.iacr.org/2022/XXX).
+Generate implicit white-box implementations of ARX ciphers following the method described in the paper [Implicit White-Box Implementations: White-Boxing ARX Ciphers](https://eprint.iacr.org/2022/428).
 
 ## Requirements
 
