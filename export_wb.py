@@ -1,11 +1,17 @@
+"""Script to export the given implicit white-box implementation to C code"""
 import functools
 import itertools
 import math
+import os
 import warnings
+
+import sage.all
 
 from boolcrypt.utilities import (
     vector2int, get_time, get_smart_print, get_all_symbolic_coeff
 )
+
+from argparse import ArgumentParser
 
 
 def bool_poly2sorted_coeffs(equation, input_variables, output_variables, max_degree, store_sorted_monomials=True):
@@ -137,30 +143,29 @@ def write_integer_with_encoding(my_integer, opened_file_object, encoding_mode=Fa
 
 
 def export_implicit_functions_to_C(
-        encoded_implicit_round_functions, max_degree, use_redundant_perturbations,
+        implicit_encoded_round_functions, max_degree, use_redundant_perturbations,
         filename_C_info, filename_C_array, encoding_mode,
         first_explicit_round, last_explicit_round, print_time_generation=False):
     if not use_redundant_perturbations:
-        bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component boolean function 0
     else:
-        bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
 
     ws = len(bpr_pmodadd.gens()) // 4
-    assert ws == len(bpr_pmodadd.gens()) // 4
 
     smart_print_C_info = get_smart_print(filename_C_info)
     smart_print_C_array_header = get_smart_print(filename_C_array)
 
     if not use_redundant_perturbations:
         num_boolean_systems_per_round = 1
-        num_eqs_per_system = len(encoded_implicit_round_functions[0])
-        assert all(num_eqs_per_system == len(encoded_implicit_round_functions[i]) for i in range(len(encoded_implicit_round_functions)))
+        num_eqs_per_system = len(implicit_encoded_round_functions[0])
+        assert all(num_eqs_per_system == len(implicit_encoded_round_functions[i]) for i in range(len(implicit_encoded_round_functions)))
     else:
         num_boolean_systems_per_round = 4
-        num_eqs_per_system = len(encoded_implicit_round_functions[0][0])
+        num_eqs_per_system = len(implicit_encoded_round_functions[0][0])
         for j in range(4):
-            for i in range(len(encoded_implicit_round_functions)):
-                assert num_eqs_per_system == len(encoded_implicit_round_functions[i][j])
+            for i in range(len(implicit_encoded_round_functions)):
+                assert num_eqs_per_system == len(implicit_encoded_round_functions[i][j])
     assert num_eqs_per_system == 2*ws  # num eqs per system
 
     input_vars = bpr_pmodadd.gens()[:2*ws]
@@ -169,7 +174,7 @@ def export_implicit_functions_to_C(
 
     if filename_C_info is None:
         smart_print_C_info("")
-    smart_print_C_info(f"// number of implicit round functions (IRF): {len(encoded_implicit_round_functions)}")
+    smart_print_C_info(f"// number of implicit round functions (IRF): {len(implicit_encoded_round_functions)}")
     smart_print_C_info(f"// number of {'' if use_redundant_perturbations else 'non-'}perturbed system of each IRF: {num_boolean_systems_per_round}")
     smart_print_C_info(f"// number of equations in each {'' if use_redundant_perturbations else 'non-'}perturbed system: {num_eqs_per_system}")
     smart_print_C_info(f"// algebraic degree of all equations: {max_degree}")
@@ -185,7 +190,7 @@ def export_implicit_functions_to_C(
 
     smart_print_C_array_header(f"#define USE_REDUNDANT_PERTURBATIONS {int(use_redundant_perturbations)}")
     smart_print_C_array_header(f"#define MAX_DEGREE {max_degree}")
-    smart_print_C_array_header(f"#define ROUNDS {len(encoded_implicit_round_functions)}")
+    smart_print_C_array_header(f"#define ROUNDS {len(implicit_encoded_round_functions)}")
     smart_print_C_array_header(f"#define WORD_SIZE {ws}")
     smart_print_C_array_header(f"#define WORD_TYPE {WORD_TYPE[ws]}")
     smart_print_C_array_header(f"#define WORD_IN_TYPE {WORD_IN_TYPE[ws]}")
@@ -202,12 +207,12 @@ def export_implicit_functions_to_C(
     list_zero = [0]*(num_eqs_per_system - 1)
     sorted_monomials = None
 
-    for round_index in range(len(encoded_implicit_round_functions)):
+    for round_index in range(len(implicit_encoded_round_functions)):
         if not use_redundant_perturbations:
-            boolean_systems_in_round_i = [encoded_implicit_round_functions[round_index]]
+            boolean_systems_in_round_i = [implicit_encoded_round_functions[round_index]]
             assert len(boolean_systems_in_round_i) == 1
         else:
-            boolean_systems_in_round_i = encoded_implicit_round_functions[round_index]
+            boolean_systems_in_round_i = implicit_encoded_round_functions[round_index]
             assert len(boolean_systems_in_round_i) == 4
 
         total_num_zero_coeffs = 0
@@ -224,13 +229,13 @@ def export_implicit_functions_to_C(
 
                 if sorted_monomials is None:
                     sorted_monomials = new_sorted_monomials
-                    total_number_monomials = len(sorted_monomials) * num_boolean_systems_per_round * len(encoded_implicit_round_functions)
+                    total_number_monomials = len(sorted_monomials) * num_boolean_systems_per_round * len(implicit_encoded_round_functions)
                     total_number_monomial_words = total_number_monomials * num_words_per_monomial
 
                     smart_print_C_info(f"// monomial ordering used (total={len(sorted_monomials)}): {sorted_monomials}")
                     smart_print_C_info(f"// total number of monomials = {total_number_monomials} = "
                                        f"({len(sorted_monomials)} monomials) x ({num_boolean_systems_per_round} num_boolean_systems_per_round)"
-                                       f" x ({len(encoded_implicit_round_functions)} IRF)")
+                                       f" x ({len(implicit_encoded_round_functions)} IRF)")
                     smart_print_C_info(f"// total number of monomial words = {total_number_monomial_words} = "
                                        f"({total_number_monomials} total_number_monomials) x ({num_words_per_monomial} num_words_per_monomial)\n")
 
@@ -270,3 +275,44 @@ def export_implicit_functions_to_C(
         fileobject_C_array.close()
 
     get_smart_print(filename_C_array)('";')
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(prog="sage -python export_wb.py", description="Export the given implicit white-box implementation to C code")
+    parser.add_argument("--input-file", help="the file containing the implicit encoded round functions and the external encodings")
+    parser.add_argument("--irf-degree", type=int, choices=[2, 3, 4], help="the degree of the implicit encoded round functions")
+    #
+    parser.add_argument("--output-file", default="white_box_backend.c", help="the file to store the exported C code")
+    parser.add_argument("--disabled-redundant-perturbations", action="store_true", help="assume the implicit encoded round functions do NOT contain redundant perturbations")
+    parser.add_argument("--encoding-mode", default="bin", choices=["hex", "bin", "bin_zero"], help="the coefficient encoding of the implicit round functions in the exported C code (default: %(default)s)")
+    parser.add_argument("--first-explicit-round", default="", help="the C code describing the first explicit round not included in the implicit round functions")
+    parser.add_argument("--last-explicit-round", default="", help="the C code describing the last explicit round  not included in the implicit round functions")
+    parser.add_argument("--print-time-generation", action="store_true", help="print time generation output")
+    parser.add_argument("--debug-file", help="the file to store the debug output (default: stdout)")
+
+    args = parser.parse_args()
+
+    assert not os.path.isfile(args.output_file), f"{args.output_file} already exists"
+    assert args.debug_file is None or not os.path.isfile(args.debug_file), f"{args.debug_file} already exists"
+
+    implicit_encoded_round_functions, explicit_extin_anf, explicit_extout_anf = sage.all.load(args.input_file, compress=True)
+
+    # degree of the implicit encoded round functions
+    irf_degree = args.irf_degree
+
+    USE_REDUNDANT_PERTURBATIONS = not args.disabled_redundant_perturbations
+    PRINT_TIME_GENERATION = args.print_time_generation
+
+    if not USE_REDUNDANT_PERTURBATIONS:
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component boolean function 0
+    else:
+        bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+
+    ws = len(bpr_pmodadd.gens()) // 4
+
+    export_implicit_functions_to_C(
+        implicit_encoded_round_functions, irf_degree, USE_REDUNDANT_PERTURBATIONS,
+        args.debug_file, args.output_file, args.encoding_mode,
+        args.first_explicit_round, args.last_explicit_round, PRINT_TIME_GENERATION)
+
+    # TODO: export to C explicit_extin_anf and explicit_extout_anf

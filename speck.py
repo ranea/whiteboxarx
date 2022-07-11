@@ -1,4 +1,4 @@
-"""Implicit round functions of Speck (without encodings)."""
+"""Script to generate the implicit (unencoded) and explicit affine layers of a Speck instance for a fixed key."""
 from collections import namedtuple
 from functools import partial
 
@@ -72,7 +72,7 @@ def get_round_keys(speck_instance, rounds, master_key):
     return round_keys
 
 
-def get_unencoded_implicit_affine_layers(
+def get_unimplicit_encoded_affine_layers(
         speck_instance, rounds, master_key, only_x_names=False,
         return_also_explicit_affine_layers=False,
         return_implicit_round_functions=False  # only needed for debugging
@@ -231,10 +231,10 @@ def get_first_and_last_explicit_rounds(speck_instance, print_intermediate_values
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser(prog="sage -python speck.py", description="Generate (unencoded) implicit and explicit affine layers of Speck instances")
-    parser.add_argument("key", nargs="+", help="the key to use for the affine layers, a hexadecimal representation of the words")
-    parser.add_argument("--block-size", nargs="?", type=int, default=128, choices=[8, 32, 64, 128], help="the block size in bits of the Speck instance (default: %(default)i)")
-    parser.add_argument("--output-file", nargs="?", default="stored_affine_layers.sobj", help="the file used to store the (unencoded) implicit and explicit affine layers (default: %(default)s)")
+    parser = ArgumentParser(prog="sage -python speck.py", description="Generate the implicit (unencoded) and explicit affine layers of a Speck instance for a fixed key")
+    parser.add_argument("--key", nargs="+", help="the master key given as a hexadecimal representation of the words")
+    parser.add_argument("--block-size", nargs="?", type=int, choices=[8, 32, 64, 128], help="the block size in bits of the Speck instance")
+    parser.add_argument("--output-file", nargs="?", help="the file to store the implicit (unencoded) and explicit affine layers")
 
     args = parser.parse_args()
 
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     speck_instance = speck_instances[args.block_size]
     rounds = speck_instance.default_rounds
 
-    implicit_affine_layers, explicit_affine_layers = get_unencoded_implicit_affine_layers(speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
+    implicit_affine_layers, explicit_affine_layers = get_unimplicit_encoded_affine_layers(speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
     for i, affine_layer in enumerate(implicit_affine_layers):
         # Wrap in tuple because BooleanPolynomialVector can't be pickled.
         implicit_affine_layers[i] = tuple(affine_layer)

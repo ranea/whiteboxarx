@@ -63,6 +63,9 @@ def get_random_affine_permutations(bitsize, number_of_permutations, TRIVIAL_AE, 
 
 
 def get_implicit_affine_round_encodings(wordsize, rounds, TRIVIAL_EE, TRIVIAL_AE):
+    if not TRIVIAL_EE and TRIVIAL_AE:
+        raise ValueError("using non-trivial external encoding with trivial affine encodings is not supported")
+
     ws = wordsize
 
     bpr = sage.all.GF(2)
@@ -118,22 +121,18 @@ def get_implicit_affine_round_encodings(wordsize, rounds, TRIVIAL_EE, TRIVIAL_AE
             implicit_round_encodings[i] = matrix2anf(matrix, bool_poly_ring=bpr_pmodadd, bin_vector=cta)
 
     if TRIVIAL_EE:
-        def explicit_extin_function(v):
-            return v
-
-        def explicit_extout_function(v):
-            return v
+        explicit_extin_anf = bpr_pmodadd.gens()[:2*ws]
+        explicit_extout_anf = bpr_pmodadd.gens()[:2*ws]
     else:
         aux_matrix = input_ee.matrix.inverse()
-        def explicit_extin_function(v):
-            v = sage.all.vector(v[0].parent(), v)
-            return (aux_matrix * v) + (aux_matrix * input_ee.cta)
+        explicit_extin_anf = matrix2anf(aux_matrix, bool_poly_ring=bpr_pmodadd, bin_vector=aux_matrix * input_ee.cta)
+        explicit_extout_anf = matrix2anf(output_ee.matrix, bool_poly_ring=bpr_pmodadd, bin_vector=output_ee.cta)
 
-        def explicit_extout_function(v):
-            v = sage.all.vector(v[0].parent(), v)
-            return (output_ee.matrix * v) + output_ee.cta
+    bpr_xy = BooleanPolynomialRing(names=bpr_pmodadd.variable_names()[:2*ws], order="deglex")
+    explicit_extin_anf = [bpr_xy(str(f)) for f in explicit_extin_anf]
+    explicit_extout_anf = [bpr_xy(str(f)) for f in explicit_extout_anf]
 
-    return implicit_round_encodings, explicit_extin_function, explicit_extout_function
+    return implicit_round_encodings, explicit_extin_anf, explicit_extout_anf
 
 
 def get_graph_automorphisms(wordsize, rounds, filename, TRIVIAL_GA, PRINT_DEBUG_GENERATION):
@@ -259,7 +258,7 @@ def get_redundant_perturbations(wordsize, rounds, degree_qi, bpr, TRIVIAL_RP, TR
     return list_redundant_perturbations
 
 
-def get_encoded_implicit_round_funcions(
+def get_implicit_encoded_round_funcions(
         implicit_affine_layers, filename,
         SEED, USE_REDUNDANT_PERTURBATIONS,
         TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE,
@@ -297,12 +296,24 @@ def get_encoded_implicit_round_funcions(
 
     implicit_pmodadd = [bpr_pmodadd(str(f)) for f in get_implicit_modadd_anf(ws, permuted=True, only_x_names=False)]
 
-    graph_automorphisms = get_graph_automorphisms(ws, rounds, filename, TRIVIAL_GA, PRINT_DEBUG_GENERATION)
+    if not USE_REDUNDANT_PERTURBATIONS:
+        num_ga = rounds
+    else:
+        redundant_perturbations = get_redundant_perturbations(ws, rounds, 1, bpr_pmodadd, TRIVIAL_RP, TRIVIAL_AE)
+        num_rp_per_round = len(redundant_perturbations[0])
+        assert all(num_rp_per_round == len(redundant_perturbations[i]) for i in range(len(redundant_perturbations)))
+
+        if PRINT_TIME_GENERATION:
+            smart_print(f"{get_time()} | generated redundant perturbations")
+
+        num_ga = rounds * num_rp_per_round
+
+    graph_automorphisms = get_graph_automorphisms(ws, num_ga, filename, TRIVIAL_GA, PRINT_DEBUG_GENERATION)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated graph automorphisms")
 
-    implicit_round_encodings, explicit_extin_function, explicit_extout_function = get_implicit_affine_round_encodings(ws, rounds, TRIVIAL_EE, TRIVIAL_AE)
+    implicit_round_encodings, explicit_extin_anf, explicit_extout_anf = get_implicit_affine_round_encodings(ws, rounds, TRIVIAL_EE, TRIVIAL_AE)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
@@ -312,28 +323,35 @@ def get_encoded_implicit_round_funcions(
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated left permutations")
 
-    if USE_REDUNDANT_PERTURBATIONS:
-        redundant_perturbations = get_redundant_perturbations(ws, rounds, 1, bpr_pmodadd, TRIVIAL_RP, TRIVIAL_AE)
-
-        if PRINT_TIME_GENERATION:
-            smart_print(f"{get_time()} | generated redundant perturbations")
-
     implicit_round_functions = []
     list_degs = []
     for i in range(rounds):
-        anf = compose_anf_fast(implicit_pmodadd, graph_automorphisms[i])
-        anf = compose_anf_fast(anf, implicit_affine_layers[i])
-        anf = compose_anf_fast(anf, implicit_round_encodings[i])
-        anf = list(left_permutations[i].matrix * sage.all.vector(bpr_pmodadd, anf))
-        assert bpr_pmodadd == implicit_affine_layers[i][0].parent()
+        if not USE_REDUNDANT_PERTURBATIONS:
+            anf = compose_anf_fast(implicit_pmodadd, graph_automorphisms[i])
+            anf = compose_anf_fast(anf, implicit_affine_layers[i])
+            anf = compose_anf_fast(anf, implicit_round_encodings[i])
+            anf = list(left_permutations[i].matrix * sage.all.vector(bpr_pmodadd, anf))
+            assert bpr_pmodadd == implicit_affine_layers[i][0].parent()
 
-        degs = [f.degree() for f in anf]
-        assert max(degs) == 2
-        list_degs.append(degs)
+            degs = [f.degree() for f in anf]
+            assert max(degs) == 2
+            list_degs.append(degs)
 
-        if USE_REDUNDANT_PERTURBATIONS:
+            implicit_round_functions.append(anf)
+        else:
             list_anfs = []
             for index_rp, rp in enumerate(redundant_perturbations[i]):
+                anf = compose_anf_fast(implicit_pmodadd, graph_automorphisms[num_rp_per_round*i + index_rp])
+                anf = compose_anf_fast(anf, implicit_affine_layers[i])
+                anf = compose_anf_fast(anf, implicit_round_encodings[i])
+                anf = list(left_permutations[i].matrix * sage.all.vector(bpr_pmodadd, anf))
+                assert bpr_pmodadd == implicit_affine_layers[i][0].parent()
+
+                degs = [f.degree() for f in anf]
+                assert max(degs) == 2
+                if index_rp == 0:
+                    list_degs.append(degs)
+
                 assert len(anf) == len(rp)
                 if _DEBUG_SPLIT_RP:
                     list_anfs.append([anf, rp])
@@ -346,10 +364,8 @@ def get_encoded_implicit_round_funcions(
             if not _DEBUG_SPLIT_RP:
                 assert bpr_pmodadd == list_anfs[0][0].parent()
             implicit_round_functions.append(list_anfs)
-        else:
-            implicit_round_functions.append(anf)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round functions with degrees {[collections.Counter(degs) for degs in list_degs]}")
 
-    return ws, implicit_round_functions, explicit_extin_function, explicit_extout_function
+    return ws, implicit_round_functions, explicit_extin_anf, explicit_extout_anf
