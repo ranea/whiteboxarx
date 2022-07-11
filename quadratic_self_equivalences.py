@@ -16,7 +16,8 @@ if no self-equivalence is obtained such that the resulting implicit round
 function has maximum degree, the current subset is ignored and a new one is chosen.
 
 Note that the file `stored_aqse_pmodadd_w*.sobj` does not contain all
-the affine-quadratic self-equivalences of the permuted modular addition,
+the affine-quadratic self-equivalences of the permuted modular addition
+(only the subset with cardinality 3^2 × 2^{3n+14} − 3 × 2^{2n+8} for wordsize n),
 and the sampling is not uniformly.
 
 Moreover, if `use_external_encodings=True`, note the external encodings

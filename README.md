@@ -52,7 +52,7 @@ $ sage -python speck.py --key 1918 1110 0908 0100 --block-size 32 --output-file 
 
 Note that the script `speck.py` and the other scripts can be either be invoked with `sage -python [...]` or with `sage -sh; python [...]`.
 
-Currently, the generation of the unencoded affine layers is only implemented for Speck, but other ARX cipher can be implemented by adapting `speck.py`.
+Currently, the generation of the unencoded affine layers is only implemented for some instances Speck, but other ARX cipher can be implemented by adapting `speck.py`.
 
 ### 3 - Generating the implicit round functions
 
@@ -109,7 +109,13 @@ There are some restrictions on some parameters:
 - The parameter `trivial-quadratic-encodings` is only used when `irf-degree` is set to 3 or 4; if enabled, the round encodings only contain affine permutations and not affine-quadratic self-equivalences.
 - The additional countermesaure based on redundant perturbations can be used with trivial perturbations with `trivial-redundant-perturbations` or can be totally disabled with `disable-redundant-perturbations`, but these two parameters cannot be combined.
 
-Currently, `generate_wb.py` only supports ARX ciphers where the $n$-bit non-linear layer of each round is the permuted modular addition with wordisize $n/2$ (input bit-size $n$). In other words, `generate_wb.py` assumes that between each pair of consecutive affine layers (given in the `input-file`) there is a single permuted modular addition with maximum wordisize.
+Current limitations:
+
+- `generate_wb.py` only supports ARX ciphers where the $n$-bit non-linear layer of each round is the permuted modular addition with wordisize $n/2$ (input bit-size $n$), and where $n$ is a power of 2. In other words, `generate_wb.py` assumes that between each pair of consecutive affine layers (given in the `input-file`) there is a single permuted modular addition with maximum wordisize, and that the first and last layer are affine layers.
+- if `trivial-graph-automorphisms` is not given, the graph automorphisms are sampled not uniformly (due to the use of a SAT solver) and from a very small subset stored in `stored_cczse_pmodadd_w*.sobj` (that does not contain all graph automorphisms of the permuted modular addition).
+- if `irf-degree` is 3 or 4 and `trivial-quadratic-encodings` is not given, the affine-quadratic self-equvialences are sampled not uniformly (due to the use of a SAT solver).
+- if `irf-degree` is 2 and `trivial-external-encodings` is not given, the input and output external encodings are chosen as affine permutations.
+- if `irf-degree` is 3 or 4 and `trivial-external-encodings` is not given, the input external encoding is chosen as an affine permutation, and the output external encoding is chosen such that its inverse is quadratic (built from an affine-quadratic self-equivalence of the permuted modular addition).
 
 ### 4 - Evaluating the implicit white-box implementation with Python
 
@@ -210,7 +216,7 @@ The `gcc` command includes `> /dev/null 2>&1` to suppres all output. This is nee
 
 If the first or last rounds of the ARX cipher do not contain key material, these rounds do not need to be encoded (included in the implicit round functions), and they can be given in the Python evaluation or in the C exporting.
 
-For Speck, the round key is not injected in the first round, and this round is not included in the generation of the unencoded affine layers in [Step 1](v#1---setting-the-environment-variables). Thus, this round is not encoded in [Step 3](#3---generating-the-implicit-round-functions), but it is provided as the parameter `first-explicit-round` in the Python evaluation ([Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python)) and in the C exporting (([Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code)).
+For Speck, the round key is not injected in the first round, and this round is not included in the generation of the unencoded affine layers in [Step 1](v#1---setting-the-environment-variables). Thus, this round is not encoded in [Step 3](#3---generating-the-implicit-round-functions), but it is provided as the parameter `first-explicit-round` in the Python evaluation ([Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python)) and in the C exporting ([Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code)).
 
 To add the parameter `first-explicit-round` or `last-explicit-round` in the script `eval.py` for the Python evaluation, [...]
 
@@ -223,9 +229,7 @@ When exporting to C code in `export_wb.py`, the parameters `first-explicit-round
 #define LAST_EXPLICIT_ROUND(x, y) {last_explicit_round}
 ```
 
-that are executed before and after the implicit round functions are executed, respectively. 
-
-The following variables can be used in the `FIRST_EXPLICIT_ROUND` and `LAST_EXPLICIT_ROUND` macros:
+that are executed before and after the implicit round functions are executed, respectively.  The following variables can be used in the `FIRST_EXPLICIT_ROUND` and `LAST_EXPLICIT_ROUND` macros:
 
 ```
 USE_REDUNDANT_PERTURBATIONS // whether redundant permutations are used
