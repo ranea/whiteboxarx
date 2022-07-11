@@ -48,12 +48,12 @@ def get_eval_implicit_wb_implementation(
     smart_print = get_smart_print(filename)
 
     if not USE_REDUNDANT_PERTURBATIONS:
-        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component Boolean function 0
     else:
         if not DEBUG_SPLIT_RP:
-            bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+            bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component Boolean function 0
         else:
-            bpr_pmodadd = implicit_encoded_round_functions[0][0][0][0].parent()  # round 0, perturbed system 0, anf, component boolean function 0
+            bpr_pmodadd = implicit_encoded_round_functions[0][0][0][0].parent()  # round 0, perturbed system 0, anf, component Boolean function 0
 
     ordered_replacement = []
     assert len(bpr_pmodadd.gens()) == 4*ws
@@ -226,7 +226,7 @@ if __name__ == '__main__':
     parser.add_argument("--input-file", default="stored_irf_and_ee.sobj", help="the file containing the implicit encoded round functions and the external encodings")
     parser.add_argument("--plaintext", nargs=2, help="the input plaintext given as a hexadecimal representation of the words")
     #
-    parser.add_argument("--cancel-external-encodings", action="store_true", help="cancel the external encodings to evaluate on unencoded plaintexts and to obtain unencoded ciphertexts")
+    parser.add_argument("--cancel-external-encodings", action="store_true", help="cancel the external encodings to evaluate unencoded plaintexts and to obtain unencoded ciphertexts")
     parser.add_argument("--disabled-redundant-perturbations", action="store_true", help="assume the implicit encoded round functions do NOT contain redundant perturbations")
     parser.add_argument("--output-file", help="the file to store the output ciphertext and the debug output (default: stdout)")
     parser.add_argument("--print-intermediate-values", action="store_true", help="print intermediate values output while evaluating the implicit implementation")
@@ -245,9 +245,9 @@ if __name__ == '__main__':
     USE_REDUNDANT_PERTURBATIONS = not args.disabled_redundant_perturbations
 
     if not USE_REDUNDANT_PERTURBATIONS:
-        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component Boolean function 0
     else:
-        bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component Boolean function 0
     ws = len(bpr_pmodadd.gens()) // 4
 
     # TODO: get first_explicit_round and last_explicit_round from command line

@@ -168,7 +168,7 @@ which will output the ciphertext `a868 42f2`, which is the expected ciphertext b
 Alternatively, the white-box implementation (i.e., the implicit round functions) generated in [Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python) can be exported to C code (so that it can be compiled and evaluated faster) with `export_wb.py`.
 
 ```
-usage: sage -python export_wb.py [-h] [--input-file INPUT_FILE] [--irf-degree {2,3,4}] [--output-file OUTPUT_FILE] [--disabled-redundant-perturbations] [--encoding-mode {hex,bin,bin_zero}]
+usage: sage -python export_wb.py [-h] [--input-file INPUT_FILE] [--irf-degree {2,3,4}] [--output-file OUTPUT_FILE] [--cancel-external-encodings] [--disabled-redundant-perturbations] [--encoding-mode {hex,bin,bin_zero}]
                                  [--first-explicit-round FIRST_EXPLICIT_ROUND] [--last-explicit-round LAST_EXPLICIT_ROUND] [--print-time-generation] [--debug-file DEBUG_FILE]
 
 Export the given implicit white-box implementation to C code
@@ -180,6 +180,8 @@ options:
   --irf-degree {2,3,4}  the degree of the implicit encoded round functions
   --output-file OUTPUT_FILE
                         the file to store the exported C code
+  --cancel-external-encodings
+                        cancel the external encodings to evaluate unencoded plaintexts and to obtain unencoded ciphertexts
   --disabled-redundant-perturbations
                         assume the implicit encoded round functions do NOT contain redundant perturbations
   --encoding-mode {hex,bin,bin_zero}
@@ -210,7 +212,7 @@ which will output the same ciphertext (depending on the external encodings) from
 
 The `gcc` command includes `> /dev/null 2>&1` to suppres all output. This is needed because the default encoding method (`bin`) directly embeds null characters in the exported C file, causing `gcc` to print a warning (that cannot be ignored with `gcc` arguments) that dumps the full binary data to the standard error output. If the `hex` or `bin_zero` modes are used, no warnings will be emitted and it should be safe to compile the C file with output enabled.
 
-**Currently, the exporting to C code does not include the cancellation of the external encodings as in the python evaluation.**
+**TODO: update exporting to C and cancellation of the external encodings**
 
 ### 6 - The parameters first-explicit-round and last-explicit-round
 
