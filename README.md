@@ -147,9 +147,7 @@ Thus, to evaluate the previous white-box implementation with cubic implicit roun
 sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --first-explicit-round [...]
 ```
 
-which will output a variable ciphertext depending on the external encodings (generated in the previous step). The parameter `first-explicit-round` specifies the first round of Speck since this round is not included in the implicit round functions (it does not contain key material). See the [Step 6]() for more details about this parameter and `last-explicit-round`.
-
-**TODO: update anchor link**
+which will output a variable ciphertext depending on the external encodings (generated in the previous step). The parameter `first-explicit-round` specifies the first round of Speck since this round is not included in the implicit round functions (it does not contain key material). See the [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
 
 The white-box implementation can also be evaluated but cancelling the input and output external encoding by
 
@@ -161,9 +159,7 @@ which will output the ciphertext `a868 42f2`, which is the expected ciphertext b
 
 ### 5 - Evaluating the implicit white-box implementation with compiled C code
 
-Alternatively, the white-box implementation (i.e., the implicit round functions) generated in [Step 4]() can be exported to C code (so that it can be compiled and evaluated faster) with `export_wb.py`.
-
-**TODO: update anchor link**
+Alternatively, the white-box implementation (i.e., the implicit round functions) generated in [Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python) can be exported to C code (so that it can be compiled and evaluated faster) with `export_wb.py`.
 
 ```
 usage: sage -python export_wb.py [-h] [--input-file INPUT_FILE] [--irf-degree {2,3,4}] [--output-file OUTPUT_FILE] [--disabled-redundant-perturbations] [--encoding-mode {hex,bin,bin_zero}]
@@ -204,9 +200,7 @@ gcc -o white_box_arx -lm4ri white_box_arx.c > /dev/null 2>&1
 ./white_box_arx 6574 694c
 ```
 
-which will output the same ciphertext (depending on the external encodings) from [Step 4](). As in [Step 5](), the parameter `first-explicit-round` specifies the first round of Speck (not included in the implicit round functions as it does not contain key material). See the [Step 6]() for more details about this parameter and `last-explicit-round`.
-
-**TODO: update anchor link**
+which will output the same ciphertext (depending on the external encodings) from [Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python). As in [Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code), the parameter `first-explicit-round` specifies the first round of Speck (not included in the implicit round functions as it does not contain key material). See the [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
 
 The `gcc` command includes `> /dev/null 2>&1` to suppres all output. This is needed because the default encoding method (`bin`) directly embeds null characters in the exported C file, causing `gcc` to print a warning (that cannot be ignored with `gcc` arguments) that dumps the full binary data to the standard error output. If the `hex` or `bin_zero` modes are used, no warnings will be emitted and it should be safe to compile the C file with output enabled.
 
@@ -216,9 +210,7 @@ The `gcc` command includes `> /dev/null 2>&1` to suppres all output. This is nee
 
 If the first or last rounds of the ARX cipher do not contain key material, these rounds do not need to be encoded (included in the implicit round functions), and they can be given in the Python evaluation or in the C exporting.
 
-For Speck, the round key is not injected in the first round, and this round is not included in the generation of the unencoded affine layers in [Step 1](). Thus, this round is not encoded in [Step 3](), but it is provided as the parameter `first-explicit-round` in the Python evaluation ([Step 4]()) and in the C exporting (([Step 5]()).
-
-**TODO: update anchor link**
+For Speck, the round key is not injected in the first round, and this round is not included in the generation of the unencoded affine layers in [Step 1](v#1---setting-the-environment-variables). Thus, this round is not encoded in [Step 3](#3---generating-the-implicit-round-functions), but it is provided as the parameter `first-explicit-round` in the Python evaluation ([Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python)) and in the C exporting (([Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code)).
 
 To add the parameter `first-explicit-round` or `last-explicit-round` in the script `eval.py` for the Python evaluation, [...]
 
