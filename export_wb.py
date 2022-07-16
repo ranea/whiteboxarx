@@ -292,7 +292,7 @@ def export_implicit_functions_to_C(
                                        f"({total_number_monomials} total_number_monomials) x ({num_words_per_monomial} num_words_per_monomial)\n")
 
                     smart_print_C_array_header(f"#define MONOMIALS {len(sorted_monomials)}\n")
-                    smart_print_C_array_header(f'const uint8_t* coeffs = "', end="")
+                    smart_print_C_array_header(f'const MONOMIAL_WORD_TYPE* COEFFS = "', end="")
 
                     # ensure smart_print_C_array_header is not used more
                     del smart_print_C_array_header
@@ -360,9 +360,9 @@ def export_implicit_functions_to_C(
 
                 smart_print_C_info(f"\n//     {my_name} monomial ordering used (total={len(sorted_monomials)}): {sorted_monomials}")
 
-                smart_print_C_array_header(f"\n#define MONOMIALS_{my_name} {len(sorted_monomials)}")
-                smart_print_C_array_header(f"#define MAX_DEGREE_{my_name} {my_deg}\n")
-                smart_print_C_array_header(f'const uint8_t* coeffs_{my_name} = "', end="")
+                smart_print_C_array_header(f"\n#define MONOMIALS_{my_name.upper()} {len(sorted_monomials)}")
+                smart_print_C_array_header(f"#define MAX_DEGREE_{my_name.upper()} {my_deg}\n")
+                smart_print_C_array_header(f'const MONOMIAL_WORD_TYPE* COEFFS_{my_name.upper()} = "', end="")
 
                 # ensure smart_print_C_array_header is not used more
                 del smart_print_C_array_header
