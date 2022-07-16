@@ -72,7 +72,7 @@ def get_round_keys(speck_instance, rounds, master_key):
     return round_keys
 
 
-def get_unimplicit_encoded_affine_layers(
+def get_implicit_unencoded_affine_layers(
         speck_instance, rounds, master_key, only_x_names=False,
         return_also_explicit_affine_layers=False,
         return_implicit_round_functions=False  # only needed for debugging
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     speck_instance = speck_instances[args.block_size]
     rounds = speck_instance.default_rounds
 
-    implicit_affine_layers, explicit_affine_layers = get_unimplicit_encoded_affine_layers(speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
+    implicit_affine_layers, explicit_affine_layers = get_implicit_unencoded_affine_layers(speck_instance, rounds, master_key, return_also_explicit_affine_layers=True)
     for i, affine_layer in enumerate(implicit_affine_layers):
         # Wrap in tuple because BooleanPolynomialVector can't be pickled.
         implicit_affine_layers[i] = tuple(affine_layer)
