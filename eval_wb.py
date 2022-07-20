@@ -37,7 +37,7 @@ def get_eval_implicit_wb_implementation(
     cancels the input external encoding (obtained in get_implicit_encoded_round_funcions).
     Similar for explicit_extout_anf.
 
-    The (optional) argument first_explicit_round is a python function that
+    The (optional) argument first_explicit_round is a string representing python code that
     evaluates the first round of the cipher explicitly (that was not included
     in the implicit_encoded_round_functions).
     Similar for last_explicit_round.
@@ -185,8 +185,11 @@ def get_eval_implicit_wb_implementation(
         if PRINT_INTERMEDIATE_VALUES:
             smart_print(f"\nplaintext | {hex(vector2int(v))} = {v}")
 
-        if first_explicit_round is not None:
-            v = first_explicit_round(v)
+        if first_explicit_round is not None and first_explicit_round != "":
+            x, y = gf2vector_to_bitvectors(v, ws)
+            locs = {"x": x, "y": y, "ws": ws}
+            exec(first_explicit_round, globals(), locs)
+            v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"after first explicit round | {hex(vector2int(v))} = {v}")
 
@@ -208,8 +211,11 @@ def get_eval_implicit_wb_implementation(
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"\nInverse of external output encodings:\n - output | {hex(vector2int(v))} = {v}")
 
-        if last_explicit_round is not None:
-            v = last_explicit_round(v)
+        if last_explicit_round is not None and last_explicit_round != "":
+            x, y = gf2vector_to_bitvectors(v, ws)
+            locs = {"x": x, "y": y, "ws": ws}
+            exec(last_explicit_round, globals(), locs)
+            v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"after last explicit round | {hex(vector2int(v))} = {v}")
 
@@ -228,6 +234,8 @@ if __name__ == '__main__':
     #
     parser.add_argument("--cancel-external-encodings", action="store_true", help="cancel the external encodings to evaluate unencoded plaintexts and to obtain unencoded ciphertexts")
     parser.add_argument("--disabled-redundant-perturbations", action="store_true", help="assume the implicit encoded round functions do NOT contain redundant perturbations")
+    parser.add_argument("--first-explicit-round", default="", help="the Python code describing the first explicit round not included in the implicit round functions")
+    parser.add_argument("--last-explicit-round", default="", help="the Python code describing the last explicit round  not included in the implicit round functions")
     parser.add_argument("--output-file", help="the file to store the output ciphertext and the debug output (default: stdout)")
     parser.add_argument("--print-intermediate-values", action="store_true", help="print intermediate values output while evaluating the implicit implementation")
     parser.add_argument("--print-debug-intermediate-values", action="store_true", help="print debug information while evaluating the implicit round function")
@@ -248,20 +256,14 @@ if __name__ == '__main__':
         bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component Boolean function 0
     else:
         bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component Boolean function 0
-    ws = len(bpr_pmodadd.gens()) // 4
 
-    # TODO: get first_explicit_round and last_explicit_round from command line
-    raise NotImplementedError("get first_explicit_round and last_explicit_round from command line")
-    # from whiteboxarx.speck import get_first_and_last_explicit_rounds, speck_instances
-    # block_size = 2 * ws
-    # first_explicit_round, last_explicit_round = get_first_and_last_explicit_rounds(
-    #     speck_instances[block_size], args.print_intermediate_values, filename=args.output_file)
+    ws = len(bpr_pmodadd.gens()) // 4
 
     eval_wb = get_eval_implicit_wb_implementation(
         ws, implicit_encoded_round_functions, USE_REDUNDANT_PERTURBATIONS,
         args.print_intermediate_values, args.print_debug_intermediate_values, filename=args.output_file,
         explicit_extin_anf=explicit_extin_anf, explicit_extout_anf=explicit_extout_anf,
-        first_explicit_round=first_explicit_round, last_explicit_round=last_explicit_round
+        first_explicit_round=args.first_explicit_round, last_explicit_round=args.last_explicit_round
     )
 
     smart_print = get_smart_print(args.output_file)

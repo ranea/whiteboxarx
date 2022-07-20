@@ -137,6 +137,10 @@ options:
                         cancel the external encodings to evaluate on unencoded plaintexts and to obtain unencoded ciphertexts
   --disabled-redundant-perturbations
                         assume the implicit encoded round functions do NOT contain redundant perturbations
+  --first-explicit-round FIRST_EXPLICIT_ROUND
+                        the Python code describing the first explicit round not included in the implicit round functions
+  --last-explicit-round LAST_EXPLICIT_ROUND
+                        the Python code describing the last explicit round not included in the implicit round functions
   --output-file OUTPUT_FILE
                         the file to store the output ciphertext and the debug output (default: stdout)
   --print-intermediate-values
@@ -147,10 +151,8 @@ options:
 
 Thus, to evaluate the previous white-box implementation with cubic implicit rounds of Speck 32/64 for the plaintext `6574 694c`
 
-**TODO: update following command with --first-explicit-round [...]**
-
 ```
-sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --first-explicit-round [...]
+sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --first-explicit-round "x = ((x >> 7) | (x << (ws - 7))); x = (x + y) % (2 ** ws);"
 ```
 
 which will output a variable ciphertext depending on the external encodings (generated in the previous step). The parameter `first-explicit-round` specifies the first round of Speck since this round is not included in the implicit round functions (it does not contain key material). See the [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
