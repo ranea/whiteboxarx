@@ -36,14 +36,14 @@ def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers,
         identity_matrix = partial(sage.all.identity_matrix, bpr)
         identity_anf = matrix2anf(identity_matrix(2*ws), bool_poly_ring=bpr)
 
-        def trivial_foo(v):
-            return v
-
         list_aq_se = []
         for i in range(rounds):
             list_aq_se.append(identity_anf)
 
-        return list_aq_se, trivial_foo, trivial_foo
+        bpr_xy = BooleanPolynomialRing(names=bpr.variable_names()[:2 * ws], order="deglex")
+        trivial_anf = list(bpr_xy.gens())
+
+        return list_aq_se, trivial_anf, trivial_anf
     else:
         from quadratic_self_equivalences import get_explicit_affine_quadratic_se_encodings as geaqse
         return geaqse(wordsize, explicit_affine_layers, graph_automorphisms,
@@ -51,7 +51,7 @@ def get_explicit_affine_quadratic_se_encodings(wordsize, explicit_affine_layers,
                       verbose=PRINT_DEBUG_GENERATION, filename=filename)
 
 
-def get_encoded_implicit_round_funcions(
+def get_implicit_encoded_round_funcions(
         implicit_affine_layers, explicit_affine_layers, filename,
         SEED, CUBIC_IRF, MAX_DEG_IRF, USE_REDUNDANT_PERTURBATIONS,
         TRIVIAL_EE, TRIVIAL_GA, TRIVIAL_RP, TRIVIAL_AE, TRIVIAL_QE,
@@ -84,21 +84,16 @@ def get_encoded_implicit_round_funcions(
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated graph automorphisms")
 
-    explicit_affine_quadratic_se_encodings, explicit_affine_quadratic_extin_function, explicit_affine_quadratic_extout_function = \
+    explicit_affine_quadratic_se_encodings, explicit_affine_quadratic_extin_anf, explicit_affine_quadratic_extout_anf = \
         get_explicit_affine_quadratic_se_encodings(ws, explicit_affine_layers, graph_automorphisms, filename, CUBIC_IRF, MAX_DEG_IRF, TRIVIAL_EE, TRIVIAL_QE, PRINT_DEBUG_GENERATION)
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated affine-quadratic self-equivalences")
 
-    implicit_affine_round_encodings, explicit_affine_extin_function, explicit_affine_extout_function = get_implicit_affine_round_encodings(ws, rounds, TRIVIAL_EE, TRIVIAL_AE)
+    implicit_affine_round_encodings, explicit_affine_extin_anf, explicit_affine_extout_anf = get_implicit_affine_round_encodings(ws, rounds, TRIVIAL_EE, TRIVIAL_AE)
 
-    def explicit_extin_function(v):
-        v = explicit_affine_quadratic_extin_function(v)
-        return explicit_affine_extin_function(v)
-
-    def explicit_extout_function(v):
-        v = explicit_affine_extout_function(v)
-        return explicit_affine_quadratic_extout_function(v)
+    explicit_extin_anf = list(compose_anf_fast(explicit_affine_extin_anf, explicit_affine_quadratic_extin_anf))
+    explicit_extout_anf = list(compose_anf_fast(explicit_affine_quadratic_extout_anf, explicit_affine_extout_anf))
 
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round encodings")
@@ -128,12 +123,13 @@ def get_encoded_implicit_round_funcions(
         assert bpr_pmodadd == implicit_affine_layers[i][0].parent()
 
         degs = [f.degree() for f in anf]
-        if TRIVIAL_QE or (i == 0 and TRIVIAL_EE):
+        # if TRIVIAL_QE or (i == 0 and TRIVIAL_EE):  # input external encoding is affine
+        if TRIVIAL_QE or i == 0:
             assert max(degs) == 2
         elif not MAX_DEG_IRF:
             assert max(degs) >= 3
         else:
-            assert max(degs) == (3 if CUBIC_IRF else 4), f"{degs}"
+            assert max(degs) == (3 if CUBIC_IRF else 4), f"{degs}, {i}/{rounds}"
         list_degs.append(degs)
 
         if USE_REDUNDANT_PERTURBATIONS:
@@ -157,4 +153,4 @@ def get_encoded_implicit_round_funcions(
     if PRINT_TIME_GENERATION:
         smart_print(f"{get_time()} | generated implicit round functions with degrees {[collections.Counter(degs) for degs in list_degs]}")
 
-    return ws, implicit_round_functions, explicit_extin_function, explicit_extout_function
+    return ws, implicit_round_functions, explicit_extin_anf, explicit_extout_anf

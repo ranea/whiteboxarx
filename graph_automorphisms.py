@@ -22,7 +22,7 @@ from boolcrypt.functionalequations import solve_functional_equation
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
-from boolcrypt.se_pmodadd.find_implicit import graph_cczse_coeffs2modadd_cczse_anf
+from boolcrypt.se_pmodadd.find_quasilinear_ga import graph_cczse_coeffs2modadd_cczse_anf
 
 
 def get_graph_automorphisms(wordsize, rounds, filename, print_debug_generation, use_same_ga_for_all_rounds=False):

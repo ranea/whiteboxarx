@@ -1,4 +1,5 @@
 import collections
+import os
 
 import sage.all
 
@@ -9,9 +10,7 @@ from boolcrypt.utilities import (
     int2vector, get_smart_print
 )
 
-from whiteboxarx.implicit_wb_with_affine_encodings import (
-    _DEBUG_SPLIT_RP
-)
+from argparse import ArgumentParser
 
 
 def bitvectors_to_gf2vector(x, y, ws):
@@ -23,37 +22,38 @@ def gf2vector_to_bitvectors(v, ws):
 
 
 def get_eval_implicit_wb_implementation(
-        wordsize, encoded_implicit_round_functions,
+        wordsize, implicit_encoded_round_functions,
         USE_REDUNDANT_PERTURBATIONS,
         PRINT_INTERMEDIATE_VALUES, PRINT_DEBUG_INTERMEDIATE_VALUES, filename=None,
-        explicit_extin_function=None, explicit_extout_function=None,
+        explicit_extin_anf=None, explicit_extout_anf=None,
         first_explicit_round=None, last_explicit_round=None,
+        DEBUG_SPLIT_RP=False,
     ):
     """Return a Python function that evaluates the implicit white-box implementation.
 
     This function takes and return a single SageMath-GF(2) vector.
 
-    The (optional) argument explicit_extin_function is a python function that
-    cancels the input external encoding (obtained in get_encoded_implicit_round_funcions).
-    Similar for explicit_extout_function.
+    The (optional) argument explicit_extin_anf is a vectorial Boolean function that
+    cancels the input external encoding (obtained in get_implicit_encoded_round_funcions).
+    Similar for explicit_extout_anf.
 
-    The (optional) argument first_explicit_round is a python function that
+    The (optional) argument first_explicit_round is a string representing python code that
     evaluates the first round of the cipher explicitly (that was not included
-    in the encoded_implicit_round_functions).
+    in the implicit_encoded_round_functions).
     Similar for last_explicit_round.
     """
-    rounds = len(encoded_implicit_round_functions)
+    rounds = len(implicit_encoded_round_functions)
     ws = wordsize
 
     smart_print = get_smart_print(filename)
 
     if not USE_REDUNDANT_PERTURBATIONS:
-        bpr_pmodadd = encoded_implicit_round_functions[0][0].parent()  # round 0, component boolean function 0
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component Boolean function 0
     else:
-        if not _DEBUG_SPLIT_RP:
-            bpr_pmodadd = encoded_implicit_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component boolean function 0
+        if not DEBUG_SPLIT_RP:
+            bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component Boolean function 0
         else:
-            bpr_pmodadd = encoded_implicit_round_functions[0][0][0][0].parent()  # round 0, perturbed system 0, anf, component boolean function 0
+            bpr_pmodadd = implicit_encoded_round_functions[0][0][0][0].parent()  # round 0, perturbed system 0, anf, component Boolean function 0
 
     ordered_replacement = []
     assert len(bpr_pmodadd.gens()) == 4*ws
@@ -70,8 +70,8 @@ def get_eval_implicit_wb_implementation(
         for i in range(2 * ws):
             ordered_replacement_copy[i] = bpr_pmodadd(v[i])
 
-        if _DEBUG_SPLIT_RP:
-            implicit_rf = encoded_implicit_round_functions[round_index][0][0]
+        if DEBUG_SPLIT_RP:
+            implicit_rf = implicit_encoded_round_functions[round_index][0][0]
             system = [substitute_variables(bpr_pmodadd, ordered_replacement_copy, f) for f in implicit_rf]
             fixed_vars, new_equations = find_fixed_vars(
                 system, only_linear=True, initial_r_mode="gauss", repeat_with_r_mode=None,
@@ -91,7 +91,7 @@ def get_eval_implicit_wb_implementation(
             assert all(f.degree() <= 1 for f in system)
 
             list_perturbation_values = []
-            for index_rp, (_, rp) in enumerate(encoded_implicit_round_functions[round_index]):
+            for index_rp, (_, rp) in enumerate(implicit_encoded_round_functions[round_index]):
                 rp_system = [substitute_variables(bpr_pmodadd, ordered_replacement_copy, f) for f in rp]
                 list_perturbation_values.append(rp_system)
                 if PRINT_DEBUG_INTERMEDIATE_VALUES:
@@ -105,10 +105,10 @@ def get_eval_implicit_wb_implementation(
             list_outputs = []
 
             if not USE_REDUNDANT_PERTURBATIONS:
-                systems_in_round_i = [encoded_implicit_round_functions[round_index]]
+                systems_in_round_i = [implicit_encoded_round_functions[round_index]]
                 assert len(systems_in_round_i) == 1
             else:
-                systems_in_round_i = encoded_implicit_round_functions[round_index]
+                systems_in_round_i = implicit_encoded_round_functions[round_index]
                 assert len(systems_in_round_i) == 4
 
             for index_irf, implicit_rf in enumerate(systems_in_round_i):
@@ -185,13 +185,16 @@ def get_eval_implicit_wb_implementation(
         if PRINT_INTERMEDIATE_VALUES:
             smart_print(f"\nplaintext | {hex(vector2int(v))} = {v}")
 
-        if first_explicit_round is not None:
-            v = first_explicit_round(v)
+        if first_explicit_round is not None and first_explicit_round != "":
+            x, y = gf2vector_to_bitvectors(v, ws)
+            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws - 1}
+            exec(first_explicit_round, globals(), locs)
+            v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"after first explicit round | {hex(vector2int(v))} = {v}")
 
-        if explicit_extin_function is not None:
-            v = explicit_extin_function(v)
+        if explicit_extin_anf is not None:
+            v = [f(*v) for f in explicit_extin_anf]
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"Inverse of external input encodings:\n - output | {hex(vector2int(v))} = {v}")
                 smart_print("")
@@ -203,13 +206,16 @@ def get_eval_implicit_wb_implementation(
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f" - output | {hex(vector2int(v))} = {v}")
 
-        if explicit_extout_function is not None:
-            v = explicit_extout_function(v)
+        if explicit_extout_anf is not None:
+            v = [f(*v) for f in explicit_extout_anf]
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"\nInverse of external output encodings:\n - output | {hex(vector2int(v))} = {v}")
 
-        if last_explicit_round is not None:
-            v = last_explicit_round(v)
+        if last_explicit_round is not None and last_explicit_round != "":
+            x, y = gf2vector_to_bitvectors(v, ws)
+            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws - 1}
+            exec(last_explicit_round, globals(), locs)
+            v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
                 smart_print(f"after last explicit round | {hex(vector2int(v))} = {v}")
 
@@ -219,3 +225,59 @@ def get_eval_implicit_wb_implementation(
         return v
 
     return eval_implicit_wb_implementation
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(prog="sage -python eval_wb.py", description="Evaluate the given implicit white-box implementation")
+    parser.add_argument("--input-file", default="stored_irf_and_ee.sobj", help="the file containing the implicit encoded round functions and the external encodings")
+    parser.add_argument("--plaintext", nargs=2, help="the input plaintext given as a hexadecimal representation of the words")
+    #
+    parser.add_argument("--cancel-external-encodings", action="store_true", help="cancel the external encodings to evaluate unencoded plaintexts and to obtain unencoded ciphertexts")
+    parser.add_argument("--disabled-redundant-perturbations", action="store_true", help="assume the implicit encoded round functions do NOT contain redundant perturbations")
+    parser.add_argument("--first-explicit-round", default="", help="the Python code describing the first explicit round not included in the implicit round functions")
+    parser.add_argument("--last-explicit-round", default="", help="the Python code describing the last explicit round  not included in the implicit round functions")
+    parser.add_argument("--output-file", help="the file to store the output ciphertext and the debug output (default: stdout)")
+    parser.add_argument("--print-intermediate-values", action="store_true", help="print intermediate values output while evaluating the implicit implementation")
+    parser.add_argument("--print-debug-intermediate-values", action="store_true", help="print debug information while evaluating the implicit round function")
+
+    args = parser.parse_args()
+
+    assert args.plaintext is not None
+    assert args.output_file is None or not os.path.isfile(args.output_file), f"{args.output_file} already exists"
+
+    implicit_encoded_round_functions, explicit_extin_anf, explicit_extout_anf = sage.all.load(args.input_file, compress=True)
+
+    if not args.cancel_external_encodings:
+        explicit_extin_anf, explicit_extout_anf = None, None
+
+    USE_REDUNDANT_PERTURBATIONS = not args.disabled_redundant_perturbations
+
+    if not USE_REDUNDANT_PERTURBATIONS:
+        bpr_pmodadd = implicit_encoded_round_functions[0][0].parent()  # round 0, component Boolean function 0
+    else:
+        bpr_pmodadd = implicit_encoded_round_functions[0][0][0].parent()  # round 0, perturbed system 0, component Boolean function 0
+
+    ws = len(bpr_pmodadd.gens()) // 4
+
+    eval_wb = get_eval_implicit_wb_implementation(
+        ws, implicit_encoded_round_functions, USE_REDUNDANT_PERTURBATIONS,
+        args.print_intermediate_values, args.print_debug_intermediate_values, filename=args.output_file,
+        explicit_extin_anf=explicit_extin_anf, explicit_extout_anf=explicit_extout_anf,
+        first_explicit_round=args.first_explicit_round, last_explicit_round=args.last_explicit_round
+    )
+
+    smart_print = get_smart_print(args.output_file)
+
+    plaintext = tuple(map(lambda p: int(p, 16), args.plaintext))
+
+    if args.print_debug_intermediate_values:
+        smart_print(f"Evaluating implicit white-box implementation with input ({plaintext[0]:x}, {plaintext[1]:x})\n")
+
+    plaintext = bitvectors_to_gf2vector(*plaintext, ws)
+    ciphertext = eval_wb(plaintext)
+    ciphertext = gf2vector_to_bitvectors(ciphertext, ws)
+
+    if args.print_debug_intermediate_values:
+        smart_print(f"\nCiphertext = ({ciphertext[0]:x}, {ciphertext[1]:x})\n")
+    else:
+        smart_print(f"{ciphertext[0]:x} {ciphertext[1]:x}")

@@ -1,12 +1,12 @@
-"""Get a list of affine-quadratic self-equivalences from `stored_qase_pmodadd_w*.sobj`.
+"""Get a list of affine-quadratic self-equivalences from `stored_aqse_pmodadd_w*.sobj`.
 
-The file `data/stored_qase_pmodadd_w*.sobj` contains affine-quadratic
+The file `data/stored_aqse_pmodadd_w*.sobj` contains affine-quadratic
 self-equivalences (given as solutions of a system of equations)
 of the permuted modular addition for the wordsize w*-.
 
 To sample affine-quadratic self-equivalences, first
 `MAX_SUBSET_SOLUTIONS * rounds` class solutions are obtained
-from the system of equations included in `stored_qase_pmodadd_w*.sobj`.
+from the system of equations included in `stored_aqse_pmodadd_w*.sobj`.
 Each class solution gives a subset of self-equivalences.
 
 If `ensure_max_degree=False`, a random self-equivalence is sampled for each
@@ -15,14 +15,17 @@ Otherwise, for each subset we try `MAX_SAMPLES_PER_SE_SUBSET` times;
 if no self-equivalence is obtained such that the resulting implicit round
 function has maximum degree, the current subset is ignored and a new one is chosen.
 
-Note that the file `stored_qase_pmodadd_w*.sobj` does not contain all
-the affine-quadratic self-equivalences of the permuted modular addition,
+Note that the file `stored_aqse_pmodadd_w*.sobj` does not contain all
+the affine-quadratic self-equivalences of the permuted modular addition
+(only the subset with cardinality 3^2 × 2^{3n+14} − 3 × 2^{2n+8} for wordsize n),
 and the sampling is not uniformly.
 
 Moreover, if `use_external_encodings=True`, note the external encodings
-are not chosen as random quadratic permutation (not implemented yet),
-but as right quadratic self-equivalences composed with
-random affine permutations.
+are not chosen as random quadratic permutation (not implemented yet).
+Instead, the input external encoding returned here is the identity,
+and the output external encoding is a right quadratic self-equivalence
+(and these external encodings are composed with random affine permutations in
+get_implicit_encoded_round_funcions()).
 """
 import sage.all
 from sage.sat.boolean_polynomials import solve as solve_sat
@@ -35,7 +38,7 @@ from boolcrypt.utilities import (
 
 from boolcrypt.modularaddition import get_implicit_modadd_anf
 
-from boolcrypt.se_pmodadd.find_quadraticaffine_se import graph_qase_coeffs2modadd_qase_anf
+from boolcrypt.se_pmodadd.find_affinequadratic_se import graph_aqse_coeffs2modadd_aqse_anf
 
 
 MAX_SUBSET_SOLUTIONS = 128
@@ -52,10 +55,10 @@ def get_explicit_affine_quadratic_se_encodings(
     smart_print = get_smart_print(filename)
 
     try:
-        filename_sobj = f"data/stored_qase_pmodadd_w{wordsize}.sobj"
+        filename_sobj = f"data/stored_aqse_pmodadd_w{wordsize}.sobj"
         coeff2expr, equations = sage.all.load(filename_sobj, compress=True)
     except FileNotFoundError:
-        filename_sobj = f"whiteboxarx/data/stored_qase_pmodadd_w{wordsize}.sobj"
+        filename_sobj = f"whiteboxarx/data/stored_aqse_pmodadd_w{wordsize}.sobj"
         coeff2expr, equations = sage.all.load(filename_sobj, compress=True)
 
     if verbose:
@@ -63,7 +66,7 @@ def get_explicit_affine_quadratic_se_encodings(
 
     # 1 - Get inv_A_symbolic, B_symbolic and equations with the correct BooleanPolynomialRing
     # (inv_A_symbolic, B_symbolic) are symbolic ANF pairs representin
-    # each solution from the solution set of stored_qase_pmodadd_w{wordsize}
+    # each solution from the solution set of stored_aqse_pmodadd_w{wordsize}
     # A solution is a pair (C, D) where (C^{-1}, D) or (C, D^{-1}) is an
     # affine-quadratic self-equivalences (in this function, we invert the affine C)
 
@@ -74,7 +77,7 @@ def get_explicit_affine_quadratic_se_encodings(
     names_xy = names_x + names_y
     names_xyzt = names_x + names_y + names_z + names_t
 
-    inv_A_symbolic, B_symbolic = graph_qase_coeffs2modadd_qase_anf(coeff2expr, ws, verbose=False, debug=False, filename=None)
+    inv_A_symbolic, B_symbolic = graph_aqse_coeffs2modadd_aqse_anf(coeff2expr, ws, verbose=False, debug=False, filename=None)
 
     names_coeff = list(inv_A_symbolic[0].parent().variable_names()[4*ws:])
 
@@ -109,7 +112,7 @@ def get_explicit_affine_quadratic_se_encodings(
         # Get SE subsets
         list_solution_se_invAi_Bi = solve_sat(equations, n=MAX_SUBSET_SOLUTIONS*rounds)
         if list_solution_se_invAi_Bi is None or len(list_solution_se_invAi_Bi) == 0:
-            raise ValueError(f'equations from "stored_qase_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
+            raise ValueError(f'equations from "stored_aqse_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
         if verbose:
             smart_print(f"\tfound {len(list_solution_se_invAi_Bi)} self-equivalence subsets "
                         f"to use for ws {wordsize}")
@@ -122,20 +125,20 @@ def get_explicit_affine_quadratic_se_encodings(
     for index_round in range(rounds - 1, -1, -1):  # first is r-1, last is 0
         # - Let (A_i, B_i) an affine-quadratic SE of S. Recall A_i is used in round i and B_i in round (i+1).
 
-        # - The first and intermediate encoded implicit round function is of the form
+        # - The first and intermediate implicit encoded round function is of the form
         #     T \circ GA_i \circ (AL_i, Id)            \circ ((AL_i^{-1} A_i AL_i) \circ B_{i-1}, Id) \circ AffineEncodings
         #   (in the 1st round, B_{i-1} is an arbitrary found being the external input encoding)
 
-        # - For the last round (i = r-1), the encoded implicit round function is of the form
+        # - For the last round (i = r-1), the implicit encoded round function is of the form
         #     T \circ GA_i \circ (AL_i, AL_{i+1}^{-1}) \circ ((AL_i^{-1} A_i AL_i) \circ B_{i-1}, Id) \circ AffineEncodings
         #   where B_i = AL_{i+1} B_i AL_{i+1}^{-1} is the external output encoding
 
-        # - Therefore, the encoded implicit round function can be written in general
+        # - Therefore, the implicit encoded round function can be written in general
         #     T \circ GA_i \circ ....                  \circ (                    *             , Id) \circ AffineEncodings
         #   and the goal in this loop is to compute the * function (in explicit form) and to store it in
         #   list_explicit_affinequadratic_encodings
 
-        # - Without external encodings, the first and last encoded implicit round function is of the form
+        # - Without external encodings, the first and last implicit encoded round function is of the form
         #     T \circ GA_i \circ (AL_i, Id)            \circ ((AL_i^{-1} A_i AL_i)              , Id) \circ AffineEncodings
         #     T \circ GA_i \circ (AL_i, AL_{i+1}^{-1}) \circ (B_{i-1}                           , Id) \circ AffineEncodings
 
@@ -190,8 +193,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 # If not external encodings, (A_i, B_i) is the trivial SE
                 A_i = bpr_xy.gens()
 
-                def explicit_affine_quadratic_extout_function(v):
-                    return v
+                explicit_affine_quadratic_extout_anf = list(bpr_xy.gens())
             else:
                 # Sample a random affine-quadratic SE (A_i, B_i) and use
                 # AL_{i+1} B_i AL_{i+1}^{-1} for the external output encoding
@@ -217,8 +219,7 @@ def get_explicit_affine_quadratic_se_encodings(
                 inv_AL_nexti = matrix2anf(inv_AL_nexti_matrix_ct[0], bpr_xy, names_xy, inv_AL_nexti_matrix_ct[1])
                 ALnexti_Bi_invALnexti = get_invALj_Aj_ALj(B_i, inv_AL_nexti, inv_AL_nexti_matrix_ct)
 
-                def explicit_affine_quadratic_extout_function(v):
-                    return sage.all.vector(v[0].parent(), [f(*v) for f in ALnexti_Bi_invALnexti])
+                explicit_affine_quadratic_extout_anf = ALnexti_Bi_invALnexti
 
                 del aux_list_solution_se_invAi_Bi, subset_index, ordered_replacement_copy
         else:
@@ -245,7 +246,8 @@ def get_explicit_affine_quadratic_se_encodings(
 
         # ------ Get a random B_{i-1} -----
 
-        if index_round == 0 and not use_external_encodings:
+        # if index_round == 0 and not use_external_encodings:  # input EE is always the identity
+        if index_round == 0:
             # B_{i-1} is the identity
             B_iprev = bpr_xy.gens()
             affine_quadratic_encoding = compose_anf_fast(invALi_Ai_ALi, B_iprev)
@@ -253,8 +255,7 @@ def get_explicit_affine_quadratic_se_encodings(
             assert len(affine_quadratic_encoding) == 2 * ws
             list_explicit_affinequadratic_encodings[index_round] = affine_quadratic_encoding
 
-            def explicit_affine_quadratic_extin_function(v):
-                return v
+            explicit_affine_quadratic_extin_anf = list(bpr_xy.gens())
 
             break
 
@@ -298,7 +299,7 @@ def get_explicit_affine_quadratic_se_encodings(
 
             list_solution_se_invAi_Bi = solve_sat(equations + cubic_equations, n=MAX_SUBSET_SOLUTIONS)
             if not list_solution_se_invAi_Bi:
-                raise ValueError(f'equations from "stored_qase_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
+                raise ValueError(f'equations from "stored_aqse_pmodadd_w{wordsize}" are inconsistent (unsatisfiable)')
             if verbose:
                 smart_print(f"\tfound {len(list_solution_se_invAi_Bi)} self-equivalence subsets "
                             f"to use for ws {wordsize} and round {index_round}")
@@ -388,68 +389,68 @@ def get_explicit_affine_quadratic_se_encodings(
 
         solution_se_invAi_Bi = ordered_replacement_copy_copy  # for next round
 
-        # ----- External encodings -----
-
-        if index_round == 0 and use_external_encodings:
-            # Building explicit_affine_quadratic_extin_function, an auxiliary function
-            # which cancels the external input encoding B_{-1}
-            # (by finding the input (x,y) such that v = B_{-1}(x, y) with v given)
-
-            assert B_iprev[0].parent() == bpr_xy
-
-            def explicit_affine_quadratic_extin_function(v):
-                preimage_equations = [bpr_xy(v[i]) + f(*bpr_xy.gens()) for i, f in enumerate(B_iprev)]
-
-                # if verbose:
-                #     smart_print(f"finding preimage of {v} = B_{{-1}}(...), with B_{{-1}} quadratic part of external input encoding")
-
-                solution_preimage = solve_sat(preimage_equations, n=1)
-                if solution_preimage is None or len(solution_preimage) == 0:
-                    raise ValueError('could not find the inverse of external input encoding B_{-1}')
-
-                new_v = [None for _ in range(len(v))]
-                strvar2index = lambda x: bpr_xy.variable_names().index(x)
-                for sol_var, sol_val in solution_preimage[0].items():
-                    new_v[strvar2index(str(sol_var))] = v[0].parent()(str(sol_val))
-
-                return sage.all.vector(v[0].parent(), new_v)
-
-            # # finding the inverse is not possible for ws › 4
-            # from boolcrypt.functionalequations import find_inverse
-            #
-            # assert B_iprev[0].parent() == bpr_xy
-            #
-            # bpr_xx = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)], order="deglex")
-            # # intermediate_bpr_xxy contains both bpr_xx bpr_xy
-            # intermediate_bpr_xxy = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)] + names_y, order="deglex")
-            # replacements = {str(bpr_xy.gens()[ws + i]): intermediate_bpr_xxy.gens()[ws + i] for i in range(ws)}
-            # B_iprev_xx = [bpr_xx(str(f.subs(replacements))) for f in B_iprev]
-            #
-            # if verbose:
-            #     smart_print(f"\tfinding inverse of right quadratic SE B_{{-1}} for external input encoding:")
-            #
-            # for inv_deg in range(2, min(len(B_iprev_xx), len(bpr_xx.gens()))):
-            #     inv_B_iprev_xx = find_inverse(
-            #         B_iprev_xx, inv_deg, inv_position="left",
-            #         reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
-            #         verbose=True, debug=False, filename=None,
-            #     )
-            #     found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
-            #     if verbose:
-            #         smart_print(f"\t\tinverse{' ' if found_inverse else ' not '}found with degree={inv_deg}")
-            #     if found_inverse:
-            #         break
-            # else:
-            #     raise ValueError("inverse of B_0 not found")
-            #
-            # replacements = {str(bpr_xx.gens()[ws + i]): intermediate_bpr_xxy.gens()[2*ws + i] for i in range(ws)}
-            # inv_B_iprev = [bpr_xy(str(f.subs(replacements))) for f in inv_B_iprev_xx]
-            #
-            # def explicit_affine_quadratic_extin_function(v):
-            #     return sage.all.vector(v[0].parent(), [f(*v) for f in inv_B_iprev])
+        # # disabled finding the ANF othe inverse of B_{-1} (to cancel B_{-1}) not implemented
+        # # ----- External input encodings -----
+        #
+        # if index_round == 0 and use_external_encodings:
+        #     # Building explicit_affine_quadratic_extin_anf, an auxiliary function
+        #     # which cancels the external input encoding B_{-1}
+        #     # (by finding the input (x,y) such that v = B_{-1}(x, y) with v given)
+        #
+        #     assert B_iprev[0].parent() == bpr_xy
+        #
+        #     def explicit_affine_quadratic_extin_function(v):
+        #         preimage_equations = [bpr_xy(v[i]) + f(*bpr_xy.gens()) for i, f in enumerate(B_iprev)]
+        #
+        #         # if verbose:
+        #         #     smart_print(f"finding preimage of {v} = B_{{-1}}(...), with B_{{-1}} quadratic part of external input encoding")
+        #
+        #         solution_preimage = solve_sat(preimage_equations, n=1)
+        #         if solution_preimage is None or len(solution_preimage) == 0:
+        #             raise ValueError('could not find the inverse of external input encoding B_{-1}')
+        #
+        #         new_v = [None for _ in range(len(v))]
+        #         strvar2index = lambda x: bpr_xy.variable_names().index(x)
+        #         for sol_var, sol_val in solution_preimage[0].items():
+        #             new_v[strvar2index(str(sol_var))] = v[0].parent()(str(sol_val))
+        #
+        #         return sage.all.vector(v[0].parent(), new_v)
+        #
+        #     # # finding the inverse is not possible for ws › 4
+        #     # from boolcrypt.functionalequations import find_inverse
+        #     #
+        #     # assert B_iprev[0].parent() == bpr_xy
+        #     #
+        #     # bpr_xx = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)], order="deglex")
+        #     # # intermediate_bpr_xxy contains both bpr_xx bpr_xy
+        #     # intermediate_bpr_xxy = BooleanPolynomialRing(names=["x" + str(i) for i in range(2 * ws)] + names_y, order="deglex")
+        #     # replacements = {str(bpr_xy.gens()[ws + i]): intermediate_bpr_xxy.gens()[ws + i] for i in range(ws)}
+        #     # B_iprev_xx = [bpr_xx(str(f.subs(replacements))) for f in B_iprev]
+        #     #
+        #     # if verbose:
+        #     #     smart_print(f"\tfinding inverse of right quadratic SE B_{{-1}} for external input encoding:")
+        #     #
+        #     # for inv_deg in range(2, min(len(B_iprev_xx), len(bpr_xx.gens()))):
+        #     #     inv_B_iprev_xx = find_inverse(
+        #     #         B_iprev_xx, inv_deg, inv_position="left",
+        #     #         reduction_mode=None, only_linear_fixed_vars=True, check_find_fixed_vars=False,
+        #     #         verbose=True, debug=False, filename=None,
+        #     #     )
+        #     #     found_inverse = inv_B_iprev_xx is not None and len(inv_B_iprev_xx) != 0
+        #     #     if verbose:
+        #     #         smart_print(f"\t\tinverse{' ' if found_inverse else ' not '}found with degree={inv_deg}")
+        #     #     if found_inverse:
+        #     #         break
+        #     # else:
+        #     #     raise ValueError("inverse of B_0 not found")
+        #     #
+        #     # replacements = {str(bpr_xx.gens()[ws + i]): intermediate_bpr_xxy.gens()[2*ws + i] for i in range(ws)}
+        #     # inv_B_iprev = [bpr_xy(str(f.subs(replacements))) for f in inv_B_iprev_xx]
+        #     #
+        #     # explicit_affine_quadratic_extin_anf = inv_B_iprev
 
     if wordsize <= 4:
         for affine_quadratic_encoding in list_explicit_affinequadratic_encodings:
             assert is_balanced(affine_quadratic_encoding)
 
-    return list_explicit_affinequadratic_encodings, explicit_affine_quadratic_extin_function, explicit_affine_quadratic_extout_function
+    return list_explicit_affinequadratic_encodings, explicit_affine_quadratic_extin_anf, explicit_affine_quadratic_extout_anf
