@@ -6,8 +6,8 @@ Note that this repository is an early prototype and some details/features of the
 
 ## Requirements
 
-* Python 3
-* [BoolCrypt](https://github.com/ranea/boolcrypt)
+* Python 3 (version >= 3.7)
+* [BoolCrypt](https://github.com/ranea/boolcrypt) (version >= 0.1.1)
 * [SageMath](https://www.sagemath.org/) equipped with [CryptoMiniSat](https://github.com/msoos/cryptominisat)
 * [gcc](https://gcc.gnu.org/) or another C compiler (to compile exported C code)
 * [M4RI](https://bitbucket.org/malb/m4ri) (to compile exported C code)
