@@ -225,7 +225,7 @@ In the script `eval.py` (`export_wb.py`) for the Python evaluation (C exporting)
 - `x` : the first $n/2$ bits of the state.
 - `y`: the last $n/2$ bits of the state.
 - `WORD_SIZE`: the word size in bits ($n/2$).
-- `WORD_MASK`: the integer $2^{n/2}$ that can be used to mask word overflows.
+- `WORD_MASK`: the integer $2^{n/2} - 1$ that can be used to mask word overflows.
 
 Thus, the input to the explicit rounds can be obtained from the variables `x` and `y`, and the outputs of the explicit rounds needs to be stored in `x` and `y`. The variables `WORD_SIZE` and `WORD_MASK` are read-only.
 
