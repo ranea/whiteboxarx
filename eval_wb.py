@@ -187,7 +187,7 @@ def get_eval_implicit_wb_implementation(
 
         if first_explicit_round is not None and first_explicit_round != "":
             x, y = gf2vector_to_bitvectors(v, ws)
-            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws}
+            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws - 1}
             exec(first_explicit_round, globals(), locs)
             v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
@@ -213,7 +213,7 @@ def get_eval_implicit_wb_implementation(
 
         if last_explicit_round is not None and last_explicit_round != "":
             x, y = gf2vector_to_bitvectors(v, ws)
-            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws}
+            locs = {"x": x, "y": y, "WORD_SIZE": ws, "WORD_MASK": 2**ws - 1}
             exec(last_explicit_round, globals(), locs)
             v = bitvectors_to_gf2vector(locs["x"], locs["y"], ws)
             if PRINT_INTERMEDIATE_VALUES:
