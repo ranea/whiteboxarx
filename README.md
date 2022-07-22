@@ -52,7 +52,7 @@ $ sage -python speck.py --key 1918 1110 0908 0100 --block-size 32 --output-file 
 
 Note that the script `speck.py` and the other scripts can be either be invoked with `sage -python [...]` or with `sage -sh; python [...]`.
 
-Currently, the generation of the unencoded affine layers is only implemented for some instances Speck, but other ARX cipher can be implemented by adapting `speck.py`.
+Currently, the generation of the unencoded affine layers is only implemented for some instances of Speck, but other ARX cipher can be implemented by adapting `speck.py`.
 
 ### 3 - Generating the implicit round functions
 
@@ -102,11 +102,11 @@ Thus, to generate an implicit implementation of Speck32/64 for the previous key,
 sage -python generate_wb.py --input-file speck32_64_affine_layers.sobj --irf-degree 3 --output-file speck32_64_irf.sobj
 ```
 
-Note that `generate_wb.py` can take several hours due to the generation of the graph automorphisms and affine-quadratic self-equivalences.
+Note that `generate_wb.py` can take several hours due to the generation of the graph automorphisms and the affine-quadratic self-equivalences.
 
 There are some restrictions on some parameters:
 
-- The parameter `trivial-quadratic-encodings` is only used when `irf-degree` is set to 3 or 4; if enabled, the round encodings only contain affine permutations and not affine-quadratic self-equivalences.
+- The parameter `trivial-quadratic-encodings` is only used when `irf-degree` is set to 3 or 4. If enabled, the round encodings only contain affine permutations and not affine-quadratic self-equivalences.
 - The additional countermesaure based on redundant perturbations can be used with trivial perturbations with `trivial-redundant-perturbations` or can be totally disabled with `disable-redundant-perturbations`, but these two parameters cannot be combined.
 
 Current limitations:
@@ -155,7 +155,7 @@ Thus, to evaluate the previous white-box implementation with cubic implicit roun
 sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --first-explicit-round "x = ((x >> 7) | (x << (WORD_SIZE - 7))); x = (x + y) & WORD_MASK;"
 ```
 
-which will output a variable ciphertext depending on the external encodings (generated in the previous step). The parameter `first-explicit-round` specifies the first round of Speck since this round is not included in the implicit round functions (it does not contain key material). See the [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
+which will output a variable ciphertext depending on the external encodings (generated in the previous step). The parameter `first-explicit-round` specifies the first round of Speck since this round is not included in the implicit round functions (it does not contain key material). See [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
 
 The white-box implementation can also be evaluated but cancelling the input and output external encoding by
 
@@ -198,9 +198,9 @@ options:
                         the file to store the debug output (default: stdout)
 ```
 
-The script `export_wb.py` exports the implicit encoded round functions (given by the parameter `input-file`) to a C file or "backend" . The name of this C file can be configured using the `output-file` parameter. After the C backend file is exported, it can be compiled together with `white_box_arx.c` file, an auxiliary file containing the code to evaluate the implicit round functions. Note that `white_box_arx.c` includes the C backend file with the line `#include "white_box_backend.c"`; make sure to update this `include` statement if the `export-file` parameter is changed from the default value.
+The script `export_wb.py` exports the implicit encoded round functions (given by the parameter `input-file`) to a C file or "backend" . The name of this C file can be configured using the `output-file` parameter. After the C backend file is exported, it can be compiled together with `white_box_arx.c`, an auxiliary C file containing the code to evaluate the implicit round functions. Note that `white_box_arx.c` includes the C backend file with the line `#include "white_box_backend.c"`; make sure to update this `include` statement if the `export-file` parameter is changed from the default value.
 
-The `encoding-mode` parameter specifies how the round function data should be encoded in the exported C file. By default, this is done in binary mode, to minimize the size of the output file. However, other options are `hex` (encode in hexadecimal format) and `bin_zero` (encode in binary mode, but escape the null character). These other options might greatly increase the output size (specially `hex`).
+The `encoding-mode` parameter specifies how the coefficients of the implicit round functions are encoded in the exported C file. By default, this is done in binary mode, to minimize the size of the output file. However, other options are `hex` (encode in hexadecimal format) and `bin_zero` (encode in binary mode, but escape the null character). These other options might greatly increase the output size (specially `hex`).
 
 Thus, to export the previous white-box implementation with cubic implicit rounds of Speck 32/64, then compile it, and finally evaluate it for the plaintext `6574 694c`
 
@@ -210,7 +210,7 @@ gcc -o white_box_arx -lm4ri white_box_arx.c > /dev/null 2>&1
 ./white_box_arx 6574 694c
 ```
 
-which will output the same ciphertext (depending on the external encodings) from [Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python). As in [Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code), the parameter `first-explicit-round` specifies the first round of Speck (not included in the implicit round functions as it does not contain key material). See the [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
+which will output the same ciphertext (depending on the external encodings) from [Step 4](#4---evaluating-the-implicit-white-box-implementation-with-python). As in [Step 5](#5---evaluating-the-implicit-white-box-implementation-with-compiled-c-code), the parameter `first-explicit-round` specifies the first round of Speck (not included in the implicit round functions as it does not contain key material). See [Step 6](#6---the-parameters-first-explicit-round-and-last-explicit-round) for more details about this parameter and `last-explicit-round`.
 
 The `gcc` command includes `> /dev/null 2>&1` to suppres all output. This is needed because the default encoding method (`bin`) directly embeds null characters in the exported C file, causing `gcc` to print a warning (that cannot be ignored with `gcc` arguments) that dumps the full binary data to the standard error output. If the `hex` or `bin_zero` modes are used, no warnings will be emitted and it should be safe to compile the C file with output enabled.
 
@@ -227,7 +227,7 @@ In the script `eval.py` (`export_wb.py`) for the Python evaluation (C exporting)
 - `WORD_SIZE`: the word size in bits ($n/2$).
 - `WORD_MASK`: the integer $2^{n/2} - 1$ that can be used to mask word overflows.
 
-Thus, the input to the explicit rounds can be obtained from the variables `x` and `y`, and the outputs of the explicit rounds needs to be stored in `x` and `y`. The variables `WORD_SIZE` and `WORD_MASK` are read-only.
+Thus, the input to the explicit rounds can be obtained from the variables `x` and `y`, and the output of the explicit rounds needs to be stored in `x` and `y`. The variables `WORD_SIZE` and `WORD_MASK` are read-only.
 
 For example, for Speck 32/64, to implement the first initial round $x, y \mapsto ((x \ggg 7) + y, y)$, the following parameter `first-explicit-round` can be used for both the Python evaluation and the C exporting
 
