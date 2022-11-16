@@ -160,7 +160,7 @@ which will output a variable ciphertext depending on the external encodings (gen
 The white-box implementation can also be evaluated but cancelling the input and output external encoding by
 
 ```
-sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --cancel-external-encodings 
+sage -python eval_wb.py --input-file speck32_64_irf --plaintext 6574 694c --cancel-external-encodings --first-explicit-round "x = ((x >> 7) | (x << (WORD_SIZE - 7))); x = (x + y) & WORD_MASK;"
 ```
 
 which will output the ciphertext `a868 42f2`, which is the expected ciphertext by Speck32/64 with key `1918 1110 0908 0100`.
